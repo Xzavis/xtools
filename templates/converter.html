@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Converter - Xtools</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <style>
+        .converter-card {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            margin-right: 15px;
+            font-size: 1.2rem;
+        }
+
+        .form-section {
+            margin-bottom: 3rem;
+            padding-bottom: 3rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+        
+        .form-section:last-child {
+            border-bottom: none;
+        }
+
+        /* Toggle Tabs */
+        .mode-toggle {
+            display: flex;
+            width: fit-content;
+        }
+        .mode-btn {
+            padding: 10px 24px;
+            font-size: 0.8rem;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    {% set active_page = 'converter' %}
+    {% include 'sidebar.html' %}
+
+    <div class="main-content">
+        <div class="mb-5">
+            <h1 class="text-uppercase fw-900" style="font-size: 3rem;">Converter</h1>
+            <p class="subtitle">UNIVERSAL_TRANSCODER // MULTI_FORMAT_SUPPORT</p>
+            <p class="text-muted small mt-2 fw-bold" style="max-width: 600px;">High-performance transcoding engine. Process visual assets, structured data, and documents across multiple industry-standard formats including JSON, YAML, and Markdown.</p>
+        </div>
+
+        <div class="converter-card p-5">
+            
+            <form id="convertForm">
+                <!-- Step 1: Input -->
+                <div class="form-section">
+                    <div class="d-flex align-items-center justify-content-between mb-4">
+                        <div class="d-flex align-items-center">
+                            <div class="step-circle">01</div>
+                            <h4 class="text-uppercase m-0 fw-800">Source_Selection</h4>
+                        </div>
+                        
+                        <!-- Mode Toggle -->
+                        <div class="mode-toggle">
+                            <button type="button" class="mode-btn btn active" onclick="setMode('url')">Remote_URL</button>
+                            <button type="button" class="mode-btn btn" onclick="setMode('local')">Local_Disk</button>
+                        </div>
+                    </div>
+
+                    <!-- URL Input -->
+                    <div id="urlInputGroup">
+                        <label class="form-label text-primary small fw-800 text-uppercase mb-2">Network_Locator (Direct_Link)</label>
+                        <input type="url" id="fileUrl" class="form-control form-control-lg" placeholder="HTTPS://SERVER.COM/ASSET.DAT">
+                        <div class="form-text text-muted small mt-2 fw-bold">ENSURE_ENDPOINT_ACCESSIBILITY</div>
+                    </div>
+
+                    <!-- Local Input -->
+                    <div id="localInputGroup" style="display:none;">
+                        <label class="form-label text-primary small fw-800 text-uppercase mb-2">FileSystem_Path</label>
+                        <div class="d-flex gap-2">
+                            <input type="text" id="filePath" class="form-control form-control-lg" placeholder="C:\VOLUMES\DATA\FILE.EXT">
+                            <button class="btn btn-primary" type="button" onclick="openBrowser()">
+                                <i class="fa-solid fa-folder-open"></i> BROWSE
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Format -->
+                <div class="form-section">
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="step-circle">02</div>
+                        <h4 class="text-uppercase m-0 fw-800">Target_Protocol</h4>
+                    </div>
+                    
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label text-primary small fw-800 text-uppercase mb-2">Asset_Category</label>
+                            <select id="categorySelect" class="form-select form-select-lg" onchange="updateFormats()">
+                                <option value="image">VISUAL_ASSETS (JPG, PNG, WEBP)</option>
+                                <option value="data">STRUCTURED_DATA (JSON, YAML, CSV)</option>
+                                <option value="document">DOC_STREAM (MARKDOWN, HTML)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-primary small fw-800 text-uppercase mb-2">Output_Encoding</label>
+                            <select id="formatSelect" class="form-select form-select-lg">
+                                <!-- Populated by JS -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Action -->
+                <button type="submit" class="btn btn-primary w-100 py-4 h4 mb-0">
+                    <i class="fa-solid fa-bolt me-2"></i> INITIALIZE_TRANSCODING
+                </button>
+            </form>
+
+            <!-- Status Area -->
+            <div id="statusArea" class="mt-5" style="display:none;">
+                <div class="alert bg-primary bg-opacity-10 border-primary text-primary d-flex align-items-center p-4 rounded-0">
+                    <div class="spinner-border text-primary me-4" role="status"></div>
+                    <div>
+                        <strong class="text-uppercase h5 d-block">Processing_Sequence...</strong>
+                        <div class="small fw-bold opacity-75">FETCHING_REMOTE_BUFFER // APPLYING_TRANSCODER</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- File Browser Modal (Reused) -->
+    <div class="modal fade" id="fileBrowserModal" tabindex="-1" aria-labelledby="fileBrowserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="fileBrowserModalLabel">Select a File</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group input-group-sm mb-3">
+                        <button class="btn btn-outline-secondary" type="button" onclick="browseTo('::DRIVES::')" title="My PC"><i class="fa-solid fa-computer"></i></button>
+                        <span class="input-group-text bg-white"><i class="fa-solid fa-folder-tree"></i></span>
+                        <input type="text" id="currentPathInput" class="form-control" placeholder="Path (e.g., C:\)">
+                        <button class="btn btn-primary" type="button" onclick="jumpToPath()">Go</button>
+                    </div>
+                    <div id="fileList" class="list-group">
+                        <!-- Content will be injected by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentMode = 'url';
+        // ... [formats object remains same] ...
+        const formats = {
+            'image': [
+                {val: 'png', text: 'PNG Image (.png)'},
+                {val: 'jpeg', text: 'JPEG Image (.jpg)'},
+                {val: 'webp', text: 'WebP Image (.webp)'},
+                {val: 'ico', text: 'Icon (.ico)'},
+                {val: 'pdf', text: 'PDF Document (.pdf)'}
+            ],
+            'data': [
+                {val: 'json', text: 'JSON (.json)'},
+                {val: 'yaml', text: 'YAML (.yaml)'},
+                {val: 'excel', text: 'Excel Spreadsheet (.xlsx)'},
+                {val: 'csv', text: 'CSV File (.csv)'}
+            ],
+            'document': [
+                {val: 'html', text: 'HTML Document (.html)'},
+                {val: 'markdown', text: 'Markdown Document (.md)'}
+            ]
+        };
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            if (mode === 'url') {
+                document.getElementById('urlInputGroup').style.display = 'block';
+                document.getElementById('localInputGroup').style.display = 'none';
+            } else {
+                document.getElementById('urlInputGroup').style.display = 'none';
+                document.getElementById('localInputGroup').style.display = 'block';
+            }
+        }
+
+        function updateFormats() {
+            const cat = document.getElementById('categorySelect').value;
+            const select = document.getElementById('formatSelect');
+            select.innerHTML = '';
+            formats[cat].forEach(fmt => {
+                const opt = document.createElement('option');
+                opt.value = fmt.val;
+                opt.innerText = fmt.text;
+                select.appendChild(opt);
+            });
+        }
+
+        // --- File Browser Logic ---
+        let fileBrowser;
+        document.addEventListener('DOMContentLoaded', () => {
+            fileBrowser = new bootstrap.Modal(document.getElementById('fileBrowserModal'));
+            updateFormats();
+        });
+
+        async function openBrowser() {
+            fileBrowser.show();
+            const currentPath = document.getElementById('filePath').value;
+            await browseTo(currentPath || ''); 
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.target.id === 'currentPathInput' && e.key === 'Enter') jumpToPath();
+        });
+
+        function jumpToPath() {
+            const path = document.getElementById('currentPathInput').value;
+            browseTo(path);
+        }
+
+        async function browseTo(path) {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '<div class="list-group-item">Loading...</div>';
+
+            try {
+                const response = await fetch('/browse', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ path: path })
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    fileList.innerHTML = `<div class="list-group-item text-danger">Error: ${data.error}</div>`;
+                    return;
+                }
+
+                document.getElementById('currentPathInput').value = data.current_path;
+                fileList.innerHTML = '';
+
+                // Parent / Up Button
+                if (data.parent_path || data.current_path === 'My PC') {
+                    // Only show UP if we have a parent path (even if it is ::DRIVES::)
+                    // If we are AT 'My PC', don't show UP.
+                    if (data.current_path !== 'My PC') {
+                        const parentItem = document.createElement('a');
+                        parentItem.href = "#";
+                        parentItem.className = 'list-group-item list-group-item-action file-item';
+                        parentItem.innerHTML = '<i class="fa-solid fa-arrow-turn-up text-primary"></i> .. (Up)';
+                        parentItem.onclick = (e) => { e.preventDefault(); browseTo(data.parent_path); };
+                        fileList.appendChild(parentItem);
+                    }
+                }
+
+                data.dirs.forEach(dir => {
+                    const item = document.createElement('a');
+                    item.href = "#";
+                    item.className = 'list-group-item list-group-item-action file-item';
+                    
+                    // Icon logic
+                    let icon = '<i class="fa-solid fa-folder text-warning"></i>';
+                    if (dir.includes(':\\')) icon = '<i class="fa-solid fa-hard-drive text-secondary"></i>'; // Drive Icon
+                    
+                    item.innerHTML = `${icon} ${dir}`;
+                    item.onclick = (e) => {
+                        e.preventDefault();
+                        // If clicking a Drive (C:\), just go there. Else join path.
+                        if (dir.includes(':\\') && data.current_path === 'My PC') {
+                            browseTo(dir);
+                        } else {
+                            const separator = data.current_path.endsWith('\\') ? '' : '\\';
+                            browseTo(`${data.current_path}${separator}${dir}`);
+                        }
+                    };
+                    fileList.appendChild(item);
+                });
+
+                data.files.forEach(file => {
+                    const item = document.createElement('a');
+                    item.href = "#";
+                    item.className = 'list-group-item list-group-item-action file-item';
+                    item.innerHTML = `<i class="fa-regular fa-file-lines text-muted"></i> ${file}`;
+                    item.onclick = (e) => {
+                        e.preventDefault();
+                        const separator = data.current_path.endsWith('\\') ? '' : '\\';
+                        document.getElementById('filePath').value = `${data.current_path}${separator}${file}`;
+                        fileBrowser.hide();
+                    };
+                    fileList.appendChild(item);
+                });
+
+            } catch (error) {
+                fileList.innerHTML = `<div class="list-group-item text-danger">Network Error: ${error.message}</div>`;
+            }
+        }
+
+        // --- Form Submit ---
+        document.getElementById('convertForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const category = document.getElementById('categorySelect').value;
+            const targetFormat = document.getElementById('formatSelect').value;
+            const statusArea = document.getElementById('statusArea');
+            
+            let payload = { mode: currentMode, category, target_format: targetFormat };
+
+            if (currentMode === 'url') {
+                payload.url = document.getElementById('fileUrl').value;
+                if(!payload.url) { alert("Please enter a URL"); return; }
+            } else {
+                payload.file_path = document.getElementById('filePath').value;
+                if(!payload.file_path) { alert("Please select a file"); return; }
+            }
+
+            statusArea.style.display = 'block';
+            statusArea.innerHTML = `
+                <div class="alert alert-info d-flex align-items-center">
+                    <div class="spinner-border spinner-border-sm me-3" role="status"></div>
+                    <div><strong>Converting...</strong><div class="small">Processing file...</div></div>
+                </div>`;
+
+            try {
+                const response = await fetch('/api/convert', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    
+                    const disposition = response.headers.get('Content-Disposition');
+                    let filename = "converted_file." + targetFormat;
+                    if (disposition && disposition.indexOf('attachment') !== -1) {
+                        const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                        const matches = filenameRegex.exec(disposition);
+                        if (matches != null && matches[1]) { 
+                            filename = matches[1].replace(/['"]/g, '');
+                        }
+                    }
+                    
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    
+                    statusArea.innerHTML = `<div class="alert alert-success"><i class="fa-solid fa-check me-2"></i> Success! Download started.</div>`;
+                } else {
+                    const err = await response.json();
+                    throw new Error(err.error || "Conversion failed");
+                }
+            } catch (error) {
+                statusArea.innerHTML = `<div class="alert alert-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i> Error: ${error.message}</div>`;
+            }
+        });
+    </script>
+</body>
+</html>

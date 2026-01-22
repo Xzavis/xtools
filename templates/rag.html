@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Architect - Xtools</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <style>
+        .data-slab {
+            background: var(--color-bg-surface);
+            border: var(--border-thickness) solid var(--color-border);
+            padding: var(--space-md);
+            margin-bottom: var(--space-md);
+            position: relative;
+            transition: all 0.2s;
+        }
+        .data-slab:hover {
+            border-color: var(--color-primary);
+            transform: translate(-4px, -4px);
+            box-shadow: 6px 6px 0px 0px var(--color-primary);
+        }
+        .slab-meta {
+            position: absolute;
+            top: -12px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .chunk-content {
+            font-family: var(--font-body);
+            font-size: 0.85rem;
+            color: var(--color-text-muted);
+            white-space: pre-wrap;
+            max-height: 150px;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 5;
+            -webkit-box-orient: vertical;
+        }
+        .config-card {
+            position: sticky;
+            top: var(--space-xl);
+        }
+    </style>
+</head>
+<body>
+
+    {% set active_page = 'intel_rag' %}
+    {% include 'sidebar.html' %}
+
+    <div class="main-content">
+        <div class="mb-5">
+            <h1 class="text-uppercase fw-900" style="font-size: 3.5rem; letter-spacing: -2px;">RAG Architect</h1>
+            <p class="subtitle">SEMANTIC_PARTITIONING // KNOWLEDGE_BASE_ENGINE</p>
+            <p class="text-muted small mt-2 fw-bold" style="max-width: 600px;">
+                Transform raw unstructured text into optimized semantic chunks. Manage context overlap and token density for seamless integration with Vector Databases and LLM RAG pipelines.
+            </p>
+        </div>
+
+        <div class="row g-5">
+            <!-- Left: Input Area -->
+            <div class="col-lg-8">
+                <div class="app-card mb-5">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="m-0 text-primary">01_ SOURCE_INPUT</h4>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadDemoText()">LOAD_DEMO_DATA</button>
+                    </div>
+                    <textarea id="rawText" class="form-control" rows="12" placeholder="PASTE_RAW_DOCUMENT_TEXT_HERE..."></textarea>
+                    
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <div id="inputStats" class="small fw-bold text-muted">CHARS: 0 // ESTIMATED_TOKENS: 0</div>
+                        <button class="btn btn-primary px-5" onclick="processChunks()">
+                            <i class="fa-solid fa-gears me-2"></i> GENERATE_CHUNKS
+                        </button>
+                    </div>
+                </div>
+
+                <div id="resultsArea" class="d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="m-0 text-primary">02_ GENERATED_SLABS</h4>
+                        <div class="badge-status border-primary text-primary" id="totalChunksBadge">0 CHUNKS</div>
+                    </div>
+                    <div id="chunksContainer">
+                        <!-- Slabs injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Config Area -->
+            <div class="col-lg-4">
+                <div class="app-card config-card">
+                    <h5 class="form-label mb-4">PARTITION_STRATEGY</h5>
+                    
+                    <div class="mb-4">
+                        <label class="form-label">Chunk_Size (Chars)</label>
+                        <input type="number" id="chunkSize" class="form-control" value="1000" step="100">
+                        <div class="form-text small opacity-50">Target length for each data slab.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Overlap_Window</label>
+                        <input type="number" id="overlap" class="form-control" value="200" step="50">
+                        <div class="form-text small opacity-50">Context retention between segments.</div>
+                    </div>
+
+                    <hr class="border-secondary opacity-25 my-4">
+
+                    <button class="btn btn-outline-secondary w-100 mb-3" onclick="exportJSONL()">
+                        <i class="fa-solid fa-file-export me-2"></i> EXPORT_TO_JSONL
+                    </button>
+                    <button class="btn btn-outline-secondary w-100" onclick="clearAll()">
+                        <i class="fa-solid fa-trash-can me-2"></i> PURGE_BUFFER
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const rawTextArea = document.getElementById('rawText');
+        rawTextArea.addEventListener('input', () => {
+            const len = rawTextArea.value.length;
+            const tokens = Math.ceil(len / 4);
+            document.getElementById('inputStats').innerText = `CHARS: ${len.toLocaleString()} // ESTIMATED_TOKENS: ${tokens.toLocaleString()}`;
+        });
+
+        function loadDemoText() {
+            const demo = `NEXUS_CORE SYSTEM MANIFEST:
+Retrieval-Augmented Generation (RAG) is a technique for enhancing the accuracy and reliability of generative AI models with facts fetched from external sources. By grounding LLMs on specific, up-to-date data, RAG reduces the risk of hallucinations. 
+
+The process involves several key stages:
+1. Document Ingestion: Converting raw files into searchable text.
+2. Semantic Chunking: Breaking text into small, context-rich pieces.
+3. Embedding: Converting chunks into numerical vectors.
+4. Retrieval: Searching for the most relevant chunks during a query.
+
+NEXUS_CORE focuses on the critical 'Semantic Chunking' stage, ensuring that your data slabs retain enough context via overlap windows while staying within token limits for high-performance inference.`;
+            rawTextArea.value = demo;
+            rawTextArea.dispatchEvent(new Event('input'));
+        }
+
+        async function processChunks() {
+            const text = rawTextArea.value;
+            const size = document.getElementById('chunkSize').value;
+            const overlap = document.getElementById('overlap').value;
+
+            if(!text) return alert("INPUT_EMPTY");
+
+            const res = await fetch('/api/intel/rag_chunk', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({text, chunk_size: size, overlap: overlap})
+            });
+            const data = await res.json();
+
+            if(data.success) {
+                renderChunks(data.chunks);
+                document.getElementById('resultsArea').classList.remove('d-none');
+                document.getElementById('totalChunksBadge').innerText = `${data.total_chunks} CHUNKS`;
+            }
+        }
+
+        function renderChunks(chunks) {
+            const container = document.getElementById('chunksContainer');
+            container.innerHTML = '';
+            chunks.forEach(c => {
+                const slab = document.createElement('div');
+                slab.className = 'data-slab animate-fade';
+                slab.innerHTML = `
+                    <div class="slab-meta">
+                        <span class="meta-badge" style="background: #000;">ID_${String(c.index).padStart(3, '0')}</span>
+                        <span class="meta-badge" style="background: var(--color-primary); color: white; border-color: var(--color-accent);">${c.tokens_est} TKNS</span>
+                    </div>
+                    <div class="chunk-content">${escapeHTML(c.content)}</div>
+                    <div class="mt-3 d-flex justify-content-end">
+                        <button class="btn btn-sm py-1 px-2" style="font-size: 0.6rem;" onclick="copyChunk(this)">COPY_BLOCK</button>
+                    </div>
+                `;
+                container.appendChild(slab);
+            });
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>"']/g, function(m) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+            });
+        }
+
+        function copyChunk(btn) {
+            const content = btn.parentElement.previousElementSibling.innerText;
+            navigator.clipboard.writeText(content);
+            const original = btn.innerText;
+            btn.innerText = "COPIED!";
+            setTimeout(() => btn.innerText = original, 1000);
+        }
+
+        function clearAll() {
+            rawTextArea.value = '';
+            document.getElementById('resultsArea').classList.add('d-none');
+            document.getElementById('inputStats').innerText = `CHARS: 0 // ESTIMATED_TOKENS: 0`;
+        }
+
+        function exportJSONL() {
+            // Placeholder for export logic
+            alert("EXPORT_SEQUENCE_INITIALIZED: Check console for payload debug.");
+        }
+    </script>
+</body>
+</html>

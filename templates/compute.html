@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compute Ops - Xtools</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <style>
+        .vram-display {
+            background: #000;
+            border: var(--border-thickness) solid var(--color-primary);
+            padding: var(--space-md);
+            box-shadow: 8px 8px 0px 0px var(--color-accent);
+        }
+        .vram-bar-container {
+            height: 40px;
+            background: #111;
+            border: 2px solid var(--color-border);
+            position: relative;
+            margin: var(--space-md) 0;
+        }
+        .vram-bar-fill {
+            height: 100%;
+            background: var(--color-primary);
+            transition: width 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+    </style>
+</head>
+<body>
+
+    {% set active_page = 'compute_vram' %}
+    {% include 'sidebar.html' %}
+
+    <div class="main-content">
+        <div class="mb-5">
+            <h1 class="text-uppercase fw-900" style="font-size: 3.5rem; letter-spacing: -2px;">VRAM Calculator</h1>
+            <p class="subtitle">RESOURCE_PROJECTION // GPU_OPTIMIZATION</p>
+            <p class="text-muted small mt-2 fw-bold" style="max-width: 600px;">
+                Project hardware requirements for large language models. Calculate VRAM footprint based on parameter count, quantization bit-depth, and context window overhead.
+            </p>
+        </div>
+
+        <!-- VRAM Calculator Interface -->
+        <div class="row g-5">
+            <div class="col-md-6">
+                <div class="app-card">
+                    <h4 class="mb-4 text-primary">01_ MODEL_PARAMETERS</h4>
+                    <div class="mb-4">
+                        <label class="form-label">Parameter_Count (Billion)</label>
+                        <input type="number" id="vramParams" class="form-control" value="7" step="0.1" oninput="calculateVRAM()">
+                        <div class="form-text small opacity-50">e.g., Llama-3-8B = 8.0</div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">Quantization_Bit_Depth</label>
+                        <select id="vramBits" class="form-select" onchange="calculateVRAM()">
+                            <option value="32">FP32 (Full Precision)</option>
+                            <option value="16" selected>FP16 / BF16 (Half)</option>
+                            <option value="8">INT8 (Quantized)</option>
+                            <option value="6">Q6_K (GGUF)</option>
+                            <option value="4">Q4_K_M / INT4 (Standard)</option>
+                            <option value="3">Q3_K / 3-bit</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">Context_Window (Tokens)</label>
+                        <input type="number" id="vramContext" class="form-control" value="8192" step="512" oninput="calculateVRAM()">
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="vram-display">
+                    <h4 class="text-uppercase mb-4 text-accent">VRAM_PROJECTION_RESULT</h4>
+                    <div class="row text-center">
+                        <div class="col-6 mb-4 border-end border-secondary">
+                            <small class="text-muted d-block fw-bold">MODEL_WEIGHTS</small>
+                            <span class="h2 fw-900" id="resWeights">0.00</span> <small>GB</small>
+                        </div>
+                        <div class="col-6 mb-4">
+                            <small class="text-muted d-block fw-bold">KV_CACHE</small>
+                            <span class="h2 fw-900" id="resCache">0.00</span> <small>GB</small>
+                        </div>
+                    </div>
+                    
+                    <div class="vram-bar-container">
+                        <div id="vramBar" class="vram-bar-fill" style="width: 0%"></div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-end mt-4">
+                        <div>
+                            <small class="text-muted fw-bold d-block">TOTAL_ESTIMATED_FOOTPRINT</small>
+                            <span class="display-4 fw-900 text-primary" id="resTotal">0.00</span> <span class="h4">GB</span>
+                        </div>
+                        <div class="text-end">
+                            <div class="badge-status border-accent text-accent" id="vramAdvice">READY_FOR_PROJECT</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function calculateVRAM() {
+            const params = document.getElementById('vramParams').value;
+            const bits = document.getElementById('vramBits').value;
+            const context = document.getElementById('vramContext').value;
+
+            fetch('/api/compute/vram_calc', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({params, bits, context})
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('resWeights').innerText = data.weight_vram;
+                document.getElementById('resCache').innerText = data.kv_cache;
+                document.getElementById('resTotal').innerText = data.total_estimated;
+                
+                // Visual bar (scaled to 24GB standard high-end consumer GPU)
+                let perc = (data.total_estimated / 24) * 100;
+                document.getElementById('vramBar').style.width = Math.min(perc, 100) + '%';
+                
+                const advice = document.getElementById('vramAdvice');
+                if(data.total_estimated <= 8) {
+                    advice.innerText = "FITS_IN_RTX_3060_8GB";
+                    advice.className = "badge-status border-accent text-accent";
+                } else if(data.total_estimated <= 12) {
+                    advice.innerText = "FITS_IN_RTX_3060_12GB";
+                    advice.className = "badge-status border-accent text-accent";
+                } else if(data.total_estimated <= 24) {
+                    advice.innerText = "FITS_IN_RTX_3090_4090";
+                    advice.className = "badge-status border-accent text-accent";
+                } else {
+                    advice.innerText = "MULTI_GPU_REQUIRED";
+                    advice.className = "badge-status border-danger text-danger";
+                }
+            });
+        }
+
+        window.onload = () => {
+            if(document.getElementById('vramParams')) calculateVRAM();
+        };
+    </script>
+</body>
+</html>

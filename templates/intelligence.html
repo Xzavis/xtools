@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Intelligence - Xtools</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <style>
+        .intel-card {
+            min-height: 600px;
+        }
+        .nav-tabs-brutal {
+            border: none;
+            display: flex;
+            gap: 10px;
+            margin-bottom: var(--space-md);
+        }
+        .nav-tabs-brutal .nav-link {
+            border: var(--border-thickness) solid var(--color-border);
+            color: var(--color-text-muted);
+            font-family: var(--font-heading);
+            font-weight: 800;
+            text-transform: uppercase;
+            padding: 12px 24px;
+            cursor: pointer;
+            background: var(--color-bg-surface);
+        }
+        .nav-tabs-brutal .nav-link.active {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+            box-shadow: 4px 4px 0px 0px var(--color-accent);
+            transform: translate(-2px, -2px);
+        }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-md);
+        }
+        .data-preview-table {
+            font-size: 0.75rem;
+            max-height: 300px;
+            overflow: auto;
+            border: 1px solid var(--color-border);
+        }
+        .metadata-box {
+            background: #000;
+            padding: var(--space-sm);
+            border: 1px solid var(--color-border);
+            font-size: 0.8rem;
+        }
+        .dtype-badge {
+            padding: 2px 8px;
+            font-size: 0.65rem;
+            font-weight: 800;
+            border: 1px solid var(--color-border);
+            text-transform: uppercase;
+        }
+        .dtype-f16 { background: rgba(112, 0, 255, 0.1); color: var(--color-primary); border-color: var(--color-primary); }
+        .dtype-f32 { background: rgba(204, 255, 0, 0.1); color: var(--color-accent); border-color: var(--color-accent); }
+        .dtype-bf16 { background: rgba(255, 61, 0, 0.1); color: #FF3D00; border-color: #FF3D00; }
+        .shape-text { color: var(--color-text-main); font-family: var(--font-body); font-weight: 500; }
+        .param-count { font-size: 0.65rem; color: var(--color-text-muted); display: block; margin-top: 2px; }
+        
+        /* Advanced Scrolling Viewport */
+        .neural-viewport {
+            max-height: 550px;
+            overflow-y: auto;
+            border: var(--border-thickness) solid var(--color-border);
+            background: #000;
+            position: relative;
+            box-shadow: inset 0 0 30px rgba(0,0,0,1);
+        }
+        .neural-viewport table { border-collapse: separate; border-spacing: 0; }
+        .neural-viewport thead th {
+            position: sticky;
+            top: 0;
+            background: var(--color-bg-surface);
+            z-index: 20;
+            border-bottom: var(--border-thickness) solid var(--color-primary);
+            box-shadow: 0 4px 0 0 #000;
+        }
+        .neural-viewport::-webkit-scrollbar { width: 6px; }
+        .neural-viewport::-webkit-scrollbar-track { background: #000; }
+        .neural-viewport::-webkit-scrollbar-thumb { 
+            background: var(--color-primary);
+        }
+        .neural-viewport::-webkit-scrollbar-thumb:hover { background: var(--color-accent); }
+    </style>
+</head>
+<body>
+
+    {% if active_mode == 'dataset' %}
+        {% set active_page = 'intel_dataset' %}
+    {% else %}
+        {% set active_page = 'intel_model' %}
+    {% endif %}
+    
+    {% include 'sidebar.html' %}
+
+    <div class="main-content">
+        <div class="mb-5">
+            <h1 class="text-uppercase fw-900" style="font-size: 3.5rem; letter-spacing: -2px;">
+                {% if active_mode == 'dataset' %}Dataset Sanitizer{% else %}Neural Inspector{% endif %}
+            </h1>
+            <p class="subtitle">
+                {% if active_mode == 'dataset' %}DATA_REFINERY // CLEAN_MANIFEST{% else %}NEURAL_MANIFEST_ANALYZER // GEOMETRY_EXPLORER{% endif %}
+            </p>
+            <p class="text-muted small mt-2 fw-bold" style="max-width: 600px;">
+                {% if active_mode == 'dataset' %}
+                Advanced data refinery engine. Perform deep analysis on CSV, JSON, and XLSX datasets. Detect duplicates, identify null-pointers, and execute one-click deduplication to prepare manifests for model training.
+                {% else %}
+                High-fidelity neural manifest analyzer. Deep-dive into safetensors geometry without loading weights into system memory. Map layers, calculate element distribution, and search for specific architectural components.
+                {% endif %}
+            </p>
+        </div>
+
+        <div id="intelTabContent">
+            {% if active_mode == 'dataset' %}
+            <!-- Dataset Sanitizer Pane -->
+            <div id="dataset-pane">
+                <div class="app-card">
+                    <h4 class="mb-4 text-primary">01_ DATASET_INGESTION</h4>
+                    <div class="d-flex gap-3 mb-2">
+                        <input type="text" id="datasetPath" class="form-control" placeholder="ENTER_CSV_JSON_OR_EXCEL_PATH">
+                        <button class="btn btn-primary" onclick="openBrowser('datasetPath')"><i class="fa-solid fa-folder-open"></i></button>
+                        <button class="btn btn-primary px-4" onclick="analyzeDataset()">ANALYZE</button>
+                    </div>
+                    <div class="d-flex gap-2 mb-5">
+                        <span class="meta-badge" style="font-size: 0.6rem; color: var(--color-text-muted);">SUPPORTED_FORMATS:</span>
+                        <span class="meta-badge" style="font-size: 0.6rem;">.CSV</span>
+                        <span class="meta-badge" style="font-size: 0.6rem;">.JSON</span>
+                        <span class="meta-badge" style="font-size: 0.6rem;">.JSONL</span>
+                        <span class="meta-badge" style="font-size: 0.6rem;">.XLSX</span>
+                        <span class="meta-badge" style="font-size: 0.6rem;">.XLS</span>
+                    </div>
+
+                    <div id="datasetResults" class="d-none">
+                        <div class="stat-grid mb-5">
+                            <div class="app-card p-3 mb-0">
+                                <label class="form-label">Total_Rows</label>
+                                <div class="h3 fw-900" id="statRows">0</div>
+                            </div>
+                            <div class="app-card p-3 mb-0">
+                                <label class="form-label">Duplicates</label>
+                                <div class="h3 fw-900 text-danger" id="statDupes">0</div>
+                            </div>
+                            <div class="app-card p-3 mb-0">
+                                <label class="form-label">Null_Values</label>
+                                <div class="h3 fw-900 text-warning" id="statNulls">0</div>
+                            </div>
+                            <div class="app-card p-3 mb-0">
+                                <label class="form-label">VRAM_Required</label>
+                                <div class="h3 fw-900 text-primary" id="statMem">0 MB</div>
+                            </div>
+                        </div>
+
+                        <div class="row g-4 mb-5">
+                            <div class="col-md-8">
+                                <h5 class="mb-3 text-uppercase">BUFFER_PREVIEW (HEAD_5)</h5>
+                                <div class="data-preview-table" id="dataPreview">
+                                    <!-- Table generated by JS -->
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <h5 class="mb-3 text-uppercase">REFINERY_ACTIONS</h5>
+                                <button class="btn btn-primary w-100 mb-3" onclick="cleanDataset()">
+                                    <i class="fa-solid fa-broom me-2"></i> EXECUTE_DEDUPLICATION
+                                </button>
+                                <div class="alert bg-primary bg-opacity-10 border-primary text-primary small py-2 rounded-0">
+                                    <i class="fa-solid fa-info-circle me-2"></i> Cleaned file will be saved with _cleaned suffix.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+
+            <!-- Neural Inspector Pane -->
+            <div id="model-pane">
+                <div class="app-card">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="m-0 text-primary">01_ MODEL_MANIFEST_INSPECTION</h4>
+                        <div id="modelNameDisplay" class="meta-badge d-none" style="background: var(--color-primary); color: white; border-color: var(--color-accent);">FILE: NONE</div>
+                    </div>
+                    
+                    <div class="d-flex gap-3 mb-2">
+                        <input type="text" id="modelPath" class="form-control" placeholder="PATH_TO_SAFETENSORS_MODEL">
+                        <button class="btn btn-primary" onclick="openBrowser('modelPath')"><i class="fa-solid fa-folder-open"></i></button>
+                        <button class="btn btn-primary px-4" onclick="inspectModel()">INSPECT</button>
+                    </div>
+                    <div class="d-flex gap-2 mb-5">
+                        <span class="meta-badge" style="font-size: 0.6rem; color: var(--color-text-muted);">SUPPORTED_FORMATS:</span>
+                        <span class="meta-badge" style="font-size: 0.6rem;">.SAFETENSORS</span>
+                        <span class="meta-badge" style="font-size: 0.6rem; opacity: 0.5;">.BIN (LATER)</span>
+                    </div>
+
+                    <div id="modelResults" class="d-none animate-fade">
+                        <hr class="border-secondary my-5 opacity-25">
+                        
+                        <div class="row g-5">
+                            <!-- Left: Detailed Metadata -->
+                            <div class="col-md-4">
+                                <h5 class="mb-4 text-uppercase fw-800"><i class="fa-solid fa-id-card-clip me-2 text-primary"></i>CORE_METADATA</h5>
+                                <div id="specSheet" class="stat-grid mb-4" style="grid-template-columns: 1fr;">
+                                    <!-- Cards will be injected -->
+                                </div>
+                                <h6 class="form-label mb-2">RAW_MANIFEST_DUMP</h6>
+                                <div class="metadata-box" id="modelMeta" style="max-height: 300px; overflow: auto; border-color: var(--color-primary);"></div>
+                            </div>
+
+                            <!-- Right: Tensor Explorer -->
+                            <div class="col-md-8">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h5 class="m-0 text-uppercase fw-800"><i class="fa-solid fa-diagram-project me-2 text-primary"></i>GEOMETRY_EXPLORER</h5>
+                                    <div class="d-flex gap-2 align-items-center">
+                                        <i class="fa-solid fa-filter text-muted small"></i>
+                                        <input type="text" id="tensorSearch" class="form-control py-1 px-3" style="width: 200px; font-size: 0.75rem;" placeholder="SEARCH_LAYERS..." oninput="filterTensors()">
+                                    </div>
+                                </div>
+                                
+                                <div class="neural-viewport">
+                                    <table class="table table-hover mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>LAYER_IDENTIFIER</th>
+                                                <th>GEOMETRY</th>
+                                                <th class="text-end">PRECISION</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tensorTableBody">
+                                            <!-- Dynamic -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="tensorCount" class="small text-primary fw-800 mt-3 text-uppercase" style="letter-spacing: 1px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Reusable File Browser Modal -->
+    <div class="modal fade" id="fileBrowserModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">XTOOLS_FS_BROWSER</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="d-flex gap-2 mb-4">
+                        <button class="btn btn-primary" onclick="browseTo('::DRIVES::')"><i class="fa-solid fa-hard-drive"></i></button>
+                        <input type="text" id="modalCurrentPath" readonly class="form-control">
+                        <button class="btn btn-primary" onclick="selectFile()">SELECT</button>
+                    </div>
+                    <div id="modalFileList" class="list-group list-group-flush border" style="max-height: 400px; overflow-y: auto;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentTargetInput = '';
+        let fileBrowser;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fileBrowser = new bootstrap.Modal(document.getElementById('fileBrowserModal'));
+        });
+
+        async function openBrowser(inputId) {
+            currentTargetInput = inputId;
+            fileBrowser.show();
+            await browseTo('');
+        }
+
+        async function browseTo(path) {
+            const list = document.getElementById('modalFileList');
+            list.innerHTML = '<div class="p-4 text-center text-muted fw-bold">SYNCHRONIZING_STORAGE...</div>';
+            try {
+                const response = await fetch('/browse', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ path: path })
+                });
+                const data = await response.json();
+                document.getElementById('modalCurrentPath').value = data.current_path;
+                list.innerHTML = '';
+
+                if (data.parent_path && data.current_path !== 'My PC') {
+                    const item = document.createElement('a');
+                    item.className = 'list-group-item list-group-item-action py-3';
+                    item.innerHTML = '<i class="fa-solid fa-arrow-up me-3"></i> UP_LEVEL';
+                    item.onclick = () => browseTo(data.parent_path);
+                    list.appendChild(item);
+                }
+
+                data.dirs.forEach(dir => {
+                    const item = document.createElement('a');
+                    item.className = 'list-group-item list-group-item-action py-3';
+                    item.innerHTML = `<i class="fa-solid fa-folder text-primary me-3"></i> ${dir}`;
+                    item.onclick = () => {
+                        const sep = data.current_path.endsWith('\\') ? '' : '\\';
+                        browseTo(data.current_path === 'My PC' ? dir : data.current_path + sep + dir);
+                    };
+                    list.appendChild(item);
+                });
+
+                data.files.forEach(file => {
+                    const item = document.createElement('a');
+                    item.className = 'list-group-item list-group-item-action py-3';
+                    item.innerHTML = `<i class="fa-solid fa-file-code text-muted me-3"></i> ${file}`;
+                    item.onclick = () => {
+                        const sep = data.current_path.endsWith('\\') ? '' : '\\';
+                        document.getElementById(currentTargetInput).value = data.current_path + sep + file;
+                        fileBrowser.hide();
+                    };
+                    list.appendChild(item);
+                });
+            } catch (e) { list.innerHTML = `<div class="p-4 text-danger">${e.message}</div>`; }
+        }
+
+        function selectFile() {
+            // Placeholder for confirmation
+            fileBrowser.hide();
+        }
+
+        async function analyzeDataset() {
+            const path = document.getElementById('datasetPath').value;
+            if(!path) return;
+            
+            const resultsDiv = document.getElementById('datasetResults');
+            resultsDiv.classList.add('d-none');
+
+            try {
+                const res = await fetch('/api/intel/analyze_dataset', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({path})
+                });
+                const data = await res.json();
+                if(data.error) throw new Error(data.error);
+
+                document.getElementById('statRows').innerText = data.total_rows.toLocaleString();
+                document.getElementById('statDupes').innerText = data.duplicates.toLocaleString();
+                document.getElementById('statNulls').innerText = data.null_values.toLocaleString();
+                document.getElementById('statMem').innerText = data.memory_usage;
+
+                // Preview Table
+                let html = '<table class="table table-sm table-bordered mb-0"><thead><tr>';
+                data.columns.forEach(col => html += `<th>${col}</th>`);
+                html += '</tr></thead><tbody>';
+                data.sample.forEach(row => {
+                    html += '<tr>';
+                    data.columns.forEach(col => html += `<td>${row[col]}</td>`);
+                    html += '</tr>';
+                });
+                html += '</tbody></table>';
+                document.getElementById('dataPreview').innerHTML = html;
+
+                resultsDiv.classList.remove('d-none');
+            } catch (e) { alert(e.message); }
+        }
+
+        async function cleanDataset() {
+            const path = document.getElementById('datasetPath').value;
+            try {
+                const res = await fetch('/api/intel/clean_dataset', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({path})
+                });
+                const data = await res.json();
+                if(data.error) throw new Error(data.error);
+                alert(`SUCCESS: Deduplicated ${data.initial_rows - data.cleaned_rows} rows.\nSaved to: ${data.saved_to}`);
+                analyzeDataset();
+            } catch (e) { alert(e.message); }
+        }
+
+        let allTensors = [];
+
+        async function inspectModel() {
+            const path = document.getElementById('modelPath').value;
+            if(!path) return;
+
+            document.getElementById('modelResults').classList.add('d-none');
+            const btn = event.currentTarget;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-sync fa-spin"></i> READING...';
+
+            try {
+                const res = await fetch('/api/intel/inspect_model', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({path})
+                });
+                const data = await res.json();
+                if(data.error) throw new Error(data.error);
+
+                // UI Display
+                const filename = path.split(/[\\/]/).pop();
+                document.getElementById('modelNameDisplay').innerText = `FILE: ${filename}`;
+                document.getElementById('modelNameDisplay').classList.remove('d-none');
+
+                // Core Spec Sheet
+                const specSheet = document.getElementById('specSheet');
+                specSheet.innerHTML = '';
+                const keySpecs = {
+                    'Architecture': data.metadata.format || 'Transformer_Based',
+                    'Format': 'Safetensors_Binary',
+                    'Total_Tensors': data.total_tensors,
+                    'Engine': 'Nexus_Inspector_V3'
+                };
+                
+                // Merge actual metadata into spec if available
+                if(data.metadata.arch) keySpecs['Arch_ID'] = data.metadata.arch;
+                if(data.metadata.dtype) keySpecs['Native_DType'] = data.metadata.dtype;
+
+                Object.entries(keySpecs).forEach(([k, v]) => {
+                    specSheet.innerHTML += `
+                        <div class="app-card p-3 mb-0" style="box-shadow: 4px 4px 0px 0px var(--color-primary);">
+                            <label class="form-label" style="font-size: 0.6rem; color: var(--color-text-muted);">${k}</label>
+                            <div class="fw-900 small text-uppercase">${v}</div>
+                        </div>`;
+                });
+
+                // Raw Meta
+                document.getElementById('modelMeta').innerHTML = `<pre class="mb-0 text-success" style="font-size: 0.7rem;">${JSON.stringify(data.metadata, null, 2)}</pre>`;
+
+                // Tensors
+                allTensors = data.tensors;
+                renderTensorTable(allTensors);
+
+                document.getElementById('tensorCount').innerText = `>> MAP_INDEX: ${data.total_tensors} TENSORS_DETECTED // SHOWING_HEAD_50`;
+                document.getElementById('modelResults').classList.remove('d-none');
+            } catch (e) { alert(e.message); }
+            finally { btn.innerHTML = originalText; }
+        }
+
+        function filterTensors() {
+            const query = document.getElementById('tensorSearch').value.toLowerCase();
+            const filtered = allTensors.filter(t => t.name.toLowerCase().includes(query));
+            renderTensorTable(filtered);
+        }
+
+        function renderTensorTable(tensors) {
+            const tbody = document.getElementById('tensorTableBody');
+            tbody.innerHTML = '';
+            tensors.forEach(t => {
+                const tr = document.createElement('tr');
+                const numParams = t.shape.reduce((a, b) => a * b, 1);
+                const formattedParams = numParams >= 1000000 ? (numParams / 1000000).toFixed(2) + 'M' : 
+                                      numParams >= 1000 ? (numParams / 1000).toFixed(1) + 'K' : numParams;
+                
+                let dtypeClass = 'dtype-f16';
+                if(t.dtype.includes('F32')) dtypeClass = 'dtype-f32';
+                if(t.dtype.includes('BF16')) dtypeClass = 'dtype-bf16';
+
+                tr.innerHTML = `
+                    <td>
+                        <div class="small fw-bold text-truncate" style="max-width: 300px;" title="${t.name}">${t.name}</div>
+                    </td>
+                    <td>
+                        <span class="shape-text">${t.shape.join(' × ')}</span>
+                        <span class="param-count">${formattedParams} ELEMENTS</span>
+                    </td>
+                    <td class="text-end">
+                        <span class="dtype-badge ${dtypeClass}">${t.dtype}</span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+</html>

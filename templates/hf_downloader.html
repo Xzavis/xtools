@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Hub - Xtools</title>
+    <!-- Bootstrap 5 & FontAwesome -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <style>
+        .stat-card {
+            background: var(--color-bg-surface);
+            border: var(--border-thickness) solid var(--color-border);
+            padding: var(--space-md);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 6px 6px 0px 0px var(--color-primary);
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--color-primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            box-shadow: 3px 3px 0px 0px var(--color-accent);
+        }
+
+        .ext-pill {
+            padding: 6px 12px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            cursor: pointer;
+            background: #000;
+            border: 1px solid var(--color-border);
+            transition: all 0.1s;
+        }
+
+        .ext-pill.active {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+            box-shadow: 3px 3px 0px 0px var(--color-accent);
+            transform: translate(-2px, -2px);
+        }
+
+        .terminal-container {
+            height: 350px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .terminal-header {
+            background: var(--color-bg-elevated);
+            padding: var(--space-xs) var(--space-sm);
+            border-bottom: var(--border-thickness) solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: var(--font-heading);
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .file-table-wrapper {
+            max-height: 500px;
+            overflow-y: auto;
+            border: var(--border-thickness) solid var(--color-border);
+        }
+
+        .search-box-brutal {
+            background: #000 !important;
+            border: var(--border-thickness) solid var(--color-border) !important;
+            box-shadow: 4px 4px 0px 0px var(--color-primary);
+        }
+
+        .search-box-brutal:focus {
+            box-shadow: 4px 4px 0px 0px var(--color-accent) !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    {% set active_page = 'hf_downloader' %}
+    {% include 'sidebar.html' %}
+
+    <div class="main-content">
+        
+        <!-- Header Section -->
+        <div class="d-flex justify-content-between align-items-end mb-5">
+            <div>
+                <h1 class="text-uppercase fw-900 m-0" style="font-size: 3.5rem;">Model Hub</h1>
+                <p class="subtitle">HF_REPOSITORY_BRIDGE // BATCH_RETRIEVAL_V3</p>
+                <p class="text-muted small mt-2 fw-bold" style="max-width: 600px;">Synchronize with HuggingFace repositories. Perform high-speed batch retrieval of weights and datasets with local disk direct-write support.</p>
+            </div>
+            <div class="badge-status border-primary text-primary" style="box-shadow: 4px 4px 0px 0px var(--color-primary);">
+                <i class="fa-solid fa-signal me-2"></i> GATEWAY_READY
+            </div>
+        </div>
+
+        <div class="row g-5">
+            <!-- Left Side: indexer and browser -->
+            <div class="col-xl-8">
+                
+                <!-- 01 Indexer -->
+                <div class="app-card mb-5">
+                    <h4 class="mb-4 text-primary"><span class="text-white">01_</span> REPOSITORY_INDEXER</h4>
+                    <div class="row g-4">
+                        <div class="col-md-3">
+                            <label class="form-label">Repo_Type</label>
+                            <select id="repoType" class="form-select">
+                                <option value="model">MODEL</option>
+                                <option value="dataset">DATASET</option>
+                            </select>
+                        </div>
+                        <div class="col-md-9">
+                            <label class="form-label">Namespace_ID</label>
+                            <input type="text" id="repoId" class="form-control" placeholder="username / repository_name">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">HF_Access_Token</label>
+                            <div class="d-flex gap-3">
+                                <input type="password" id="hfToken" class="form-control" placeholder="HF_AUTH_TOKEN_FOR_PRIVATE_INDEX">
+                                <button class="btn btn-primary text-nowrap" onclick="scanRepo()">
+                                    <i class="fa-solid fa-satellite-dish me-2"></i> START_SCAN
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 02 Object Explorer -->
+                <div id="fileArea" class="d-none">
+                    <div class="app-card">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4 class="m-0 text-primary"><span class="text-white">02_</span> OBJECT_EXPLORER</h4>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-outline-secondary py-1" onclick="selectAllExtensions(true)">ALL</button>
+                                <button class="btn btn-sm btn-outline-secondary py-1" onclick="selectAllExtensions(false)">NONE</button>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <input type="text" id="fileSearch" class="form-control search-box-brutal" placeholder="FILTER_BY_FILENAME..." oninput="updateFilePreview()">
+                        </div>
+
+                        <div class="file-table-wrapper">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50px;" class="text-center">
+                                            <input type="checkbox" id="selectAllFiles" class="form-check-input" onchange="toggleAllFiles(this)" checked>
+                                        </th>
+                                        <th>OBJECT_ID</th>
+                                        <th class="text-end">SIZE</th>
+                                        <th class="text-center">LINK</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="fileTableBody">
+                                    <!-- Dynamic -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Placeholder -->
+                <div id="scanPlaceholder" class="app-card text-center py-5 border-dashed" style="border-style: dashed !important; opacity: 0.5;">
+                    <i class="fa-solid fa-radar fs-1 mb-3 text-muted"></i>
+                    <h5 class="fw-bold">AWAITING_INDEX_COMMAND</h5>
+                    <p class="small text-muted mb-0">ENTER_REPO_DATA_TO_INITIALIZE_LISTING</p>
+                </div>
+
+                <!-- Loader -->
+                <div id="scanLoader" class="d-none text-center py-5">
+                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                    <h5 class="fw-bold text-primary">SYNCHRONIZING_MANIFEST...</h5>
+                </div>
+
+            </div>
+
+            <!-- Right Side: Stats and Terminal -->
+            <div class="col-xl-4">
+                
+                <!-- Metadata Stats -->
+                <div id="repoSummary" class="d-none mb-4">
+                    <div class="app-card p-4">
+                        <h6 class="form-label mb-3">REPOSITORY_METADATA</h6>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <div class="stat-card">
+                                    <div class="stat-icon"><i class="fa-solid fa-hard-drive"></i></div>
+                                    <div>
+                                        <div class="fw-900 h4 mb-0" id="sumTotalSize">0 B</div>
+                                        <small class="text-primary fw-800" style="font-size: 0.6rem;">PAYLOAD_CAPACITY</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="stat-card">
+                                    <div class="stat-icon"><i class="fa-solid fa-box-archive"></i></div>
+                                    <div>
+                                        <div class="fw-900 h4 mb-0" id="sumFileCount">0</div>
+                                        <small class="text-primary fw-800" style="font-size: 0.6rem;">INDEXED_OBJECTS</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <label class="form-label mb-2">EXT_DISTRIBUTION</label>
+                            <div class="d-flex flex-wrap gap-2" id="extensionList"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Download Manager -->
+                <div id="downloadControls" class="d-none mb-4">
+                    <div class="app-card p-4">
+                        <h6 class="form-label mb-3">TRANSFER_CONTROL</h6>
+                        
+                        <div class="p-3 bg-black border border-primary mb-4" style="box-shadow: 4px 4px 0px 0px var(--color-accent);">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-900 h2 mb-0" id="selectedCount">0</div>
+                                    <small class="text-muted fw-bold">QUEUED</small>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-900 h4 mb-0" id="selectedSize">0 B</div>
+                                    <small class="text-muted fw-bold">TOTAL_BUFFER</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-check form-switch mb-4">
+                            <input class="form-check-input" type="checkbox" id="localModeSwitch" onchange="toggleDownloadMode()">
+                            <label class="form-check-label fw-800 small text-primary" for="localModeSwitch">ENABLE_DISK_DIRECT_WRITE</label>
+                        </div>
+
+                        <div id="localPathContainer" class="mb-4 d-none">
+                            <label class="form-label">Target_Dir</label>
+                            <div class="d-flex gap-2">
+                                <input type="text" id="localPath" class="form-control" placeholder="/mnt/data/models">
+                                <button class="btn btn-primary py-1 px-3" onclick="openPathBrowser()">
+                                    <i class="fa-solid fa-folder-tree"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary w-100" onclick="startDownload()">
+                            <i class="fa-solid fa-bolt me-2"></i> EXECUTE_TRANSFER
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Activity Log -->
+                <div class="app-card p-0 overflow-hidden">
+                    <div class="terminal-container">
+                        <div class="terminal-header">
+                            <span><i class="fa-solid fa-terminal me-2"></i> SYSTEM_ACTIVITY_LOG</span>
+                            <i class="fa-solid fa-circle-notch fa-spin text-primary"></i>
+                        </div>
+                        <div id="systemLog" class="terminal-window flex-grow-1 overflow-auto">
+                            <!-- Logs -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Path Browser Modal -->
+    <div class="modal fade" id="pathBrowserModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">FS_REMOTE_BROWSER</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex gap-2 mb-4">
+                        <button class="btn btn-primary" onclick="browsePath('::DRIVES::')"><i class="fa-solid fa-hard-drive"></i></button>
+                        <input type="text" id="modalCurrentPath" readonly class="form-control">
+                        <button class="btn btn-primary" onclick="selectCurrentFolder()">CONFIRM</button>
+                    </div>
+                    <div id="modalPathList" class="list-group list-group-flush border" style="max-height: 400px; overflow-y: auto;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let repoData = null;
+        let selectedExtensions = new Set();
+        let selectedFiles = new Set();
+        let pathBrowserModal;
+
+        document.addEventListener('DOMContentLoaded', () => {
+             pathBrowserModal = new bootstrap.Modal(document.getElementById('pathBrowserModal'));
+             const savedToken = localStorage.getItem('hf_hub_token');
+             if (savedToken) document.getElementById('hfToken').value = savedToken;
+             const lastRepo = localStorage.getItem('hf_hub_last_repo');
+             if (lastRepo) document.getElementById('repoId').value = lastRepo;
+             addLog('Kernel initialized. Monitoring HuggingFace API gateway.', 'info');
+        });
+
+        function addLog(message, type='info') {
+            const logWindow = document.getElementById('systemLog');
+            const time = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const div = document.createElement('div');
+            div.className = 'mb-1';
+            let prefix = `<span class="fw-bold" style="color:var(--color-primary)">[${time}]</span> `;
+            if(type === 'error') prefix += `<span class="text-danger">[ERROR]</span> `;
+            if(type === 'success') prefix += `<span class="text-success">[SUCCESS]</span> `;
+            div.innerHTML = `${prefix}${message}`;
+            logWindow.appendChild(div);
+            logWindow.scrollTop = logWindow.scrollHeight;
+        }
+
+        function formatSize(bytes) {
+            if (!bytes) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        async function scanRepo() {
+            const repoId = document.getElementById('repoId').value.trim();
+            const repoType = document.getElementById('repoType').value;
+            const token = document.getElementById('hfToken').value.trim();
+            if (!repoId) { addLog('Repository ID required.', 'error'); return; }
+            
+            localStorage.setItem('hf_hub_last_repo', repoId);
+            if (token) localStorage.setItem('hf_hub_token', token);
+
+            document.getElementById('scanPlaceholder').classList.add('d-none');
+            document.getElementById('fileArea').classList.add('d-none');
+            document.getElementById('repoSummary').classList.add('d-none');
+            document.getElementById('scanLoader').classList.remove('d-none');
+            
+            addLog(`Establishing connection to repository: ${repoId}...`, 'info');
+            
+            try {
+                const response = await fetch('/api/hf_scan', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ repo_id: repoId, repo_type: repoType, token: token })
+                });
+                const data = await response.json();
+                if (!data.success) throw new Error(data.error);
+                
+                repoData = data;
+                const totalBytes = data.files.reduce((acc, f) => acc + f.size, 0);
+                document.getElementById('sumTotalSize').innerText = formatSize(totalBytes);
+                document.getElementById('sumFileCount').innerText = data.total_files;
+                
+                renderExtensions(data.extensions);
+                
+                document.getElementById('scanLoader').classList.add('d-none');
+                document.getElementById('fileArea').classList.remove('d-none');
+                document.getElementById('repoSummary').classList.remove('d-none');
+                addLog(`Index complete. Found ${data.total_files} objects.`, 'success');
+                
+            } catch (error) {
+                document.getElementById('scanLoader').classList.add('d-none');
+                document.getElementById('scanPlaceholder').classList.remove('d-none');
+                addLog(error.message, 'error');
+            }
+        }
+
+        function renderExtensions(extensions) {
+            const container = document.getElementById('extensionList');
+            container.innerHTML = '';
+            selectedExtensions.clear();
+            selectedFiles.clear();
+            
+            Object.keys(extensions).sort().forEach(ext => {
+                const pill = document.createElement('div');
+                pill.className = 'ext-pill';
+                pill.innerText = `.${ext}`;
+                pill.onclick = () => {
+                    if (selectedExtensions.has(ext)) {
+                        selectedExtensions.delete(ext);
+                        pill.classList.remove('active');
+                    } else {
+                        selectedExtensions.add(ext);
+                        pill.classList.add('active');
+                    }
+                    syncSelectedFiles();
+                    updateFilePreview();
+                };
+                container.appendChild(pill);
+            });
+            updateFilePreview();
+        }
+
+        function syncSelectedFiles() {
+            if (!repoData) return;
+            selectedFiles.clear();
+            repoData.files.forEach(f => {
+                if (selectedExtensions.has(f.extension)) selectedFiles.add(f.path);
+            });
+        }
+
+        function selectAllExtensions(select) {
+            document.querySelectorAll('.ext-pill').forEach(pill => {
+                const ext = pill.innerText.substring(1);
+                if (select) {
+                    selectedExtensions.add(ext);
+                    pill.classList.add('active');
+                } else {
+                    selectedExtensions.delete(ext);
+                    pill.classList.remove('active');
+                }
+            });
+            syncSelectedFiles();
+            updateFilePreview();
+        }
+
+        function updateFilePreview() {
+            const tbody = document.getElementById('fileTableBody');
+            const search = document.getElementById('fileSearch').value.toLowerCase();
+            tbody.innerHTML = '';
+            if (!repoData) return;
+
+            let visibleFiles = repoData.files.filter(f => selectedExtensions.has(f.extension));
+            if (search) visibleFiles = visibleFiles.filter(f => f.path.toLowerCase().includes(search));
+
+            updateSelectedStats();
+
+            if (visibleFiles.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-5">NO_MATCHING_OBJECTS_FOUND</td></tr>';
+                return;
+            }
+
+            visibleFiles.slice(0, 100).forEach(f => {
+                const tr = document.createElement('tr');
+                const isChecked = selectedFiles.has(f.path) ? 'checked' : '';
+                tr.innerHTML = `
+                    <td class="text-center"><input type="checkbox" class="form-check-input" ${isChecked} onchange="toggleFileSelection('${f.path}')"></td>
+                    <td class="small fw-bold">${f.path}</td>
+                    <td class="text-end small fw-bold text-primary">${formatSize(f.size)}</td>
+                    <td class="text-center"><button class="btn btn-primary py-0 px-2 btn-sm" onclick="downloadSingleFile('${f.path}')"><i class="fa-solid fa-download"></i></button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function toggleFileSelection(path) {
+            if (selectedFiles.has(path)) selectedFiles.delete(path);
+            else selectedFiles.add(path);
+            updateSelectedStats();
+        }
+
+        function toggleAllFiles(checkbox) {
+            const search = document.getElementById('fileSearch').value.toLowerCase();
+            let visibleFiles = repoData.files.filter(f => selectedExtensions.has(f.extension));
+            if (search) visibleFiles = visibleFiles.filter(f => f.path.toLowerCase().includes(search));
+            
+            visibleFiles.forEach(f => {
+                if (checkbox.checked) selectedFiles.add(f.path);
+                else selectedFiles.delete(f.path);
+            });
+            updateFilePreview();
+        }
+
+        function updateSelectedStats() {
+            if (!repoData) return;
+            const filteredFiles = repoData.files.filter(f => selectedFiles.has(f.path));
+            const totalBytes = filteredFiles.reduce((acc, f) => acc + (f.size || 0), 0);
+            
+            document.getElementById('selectedSize').innerText = formatSize(totalBytes);
+            document.getElementById('selectedCount').innerText = filteredFiles.length;
+            
+            const downloadControls = document.getElementById('downloadControls');
+            if (filteredFiles.length > 0) downloadControls.classList.remove('d-none');
+            else downloadControls.classList.add('d-none');
+        }
+
+        function downloadSingleFile(path) {
+            const isLocal = document.getElementById('localModeSwitch').checked;
+            const repoId = document.getElementById('repoId').value;
+            const repoType = document.getElementById('repoType').value;
+            
+            if (isLocal) {
+                const localPath = document.getElementById('localPath').value;
+                if (!localPath) { addLog('Local path target undefined.', 'error'); return; }
+                executeServerDownload(repoId, [path], localPath, repoType);
+            } else {
+                addLog(`Generating browser download link for: ${path}`, 'info');
+                executeBrowserDownload(repoId, [path], repoType);
+            }
+        }
+
+        async function executeBrowserDownload(repoId, fileList, repoType) {
+            try {
+                const response = await fetch('/api/hf_download_links', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ repo_id: repoId, repo_type: repoType, files: fileList })
+                });
+                const data = await response.json();
+                data.links.forEach((link, i) => {
+                    setTimeout(() => {
+                        const a = document.createElement('a');
+                        a.href = link; a.setAttribute('download', '');
+                        document.body.appendChild(a); a.click(); a.remove();
+                    }, i * 1000);
+                });
+            } catch (error) { addLog(error.message, 'error'); }
+        }
+
+        async function executeServerDownload(repoId, fileList, localPath, repoType) {
+            const token = document.getElementById('hfToken').value.trim();
+            addLog(`Initializing server-side transfer to: ${localPath}`, 'info');
+            try {
+                const response = await fetch('/api/hf_download_server', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ repo_id: repoId, repo_type: repoType, files: fileList, local_dir: localPath, token: token })
+                });
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    decoder.decode(value).split('\n').filter(l => l.trim()).forEach(line => {
+                        try {
+                            const msg = JSON.parse(line);
+                            addLog(msg.message, msg.type);
+                        } catch (e) {}
+                    });
+                }
+            } catch (e) { addLog(e.message, 'error'); }
+        }
+
+        function toggleDownloadMode() {
+            const isLocal = document.getElementById('localModeSwitch').checked;
+            document.getElementById('localPathContainer').classList.toggle('d-none', !isLocal);
+        }
+
+        function startDownload() {
+            const isLocal = document.getElementById('localModeSwitch').checked;
+            const fileList = Array.from(selectedFiles);
+            const repoId = document.getElementById('repoId').value;
+            const repoType = document.getElementById('repoType').value;
+
+            if (isLocal) {
+                const localPath = document.getElementById('localPath').value;
+                if (!localPath) { addLog('Local path target undefined.', 'error'); return; }
+                executeServerDownload(repoId, fileList, localPath, repoType);
+            } else {
+                executeBrowserDownload(repoId, fileList, repoType);
+            }
+        }
+
+        async function openPathBrowser() { pathBrowserModal.show(); await browsePath('::DRIVES::'); }
+
+        async function browsePath(path) {
+            const list = document.getElementById('modalPathList');
+            list.innerHTML = '<div class="p-4 text-center text-muted fw-bold">STREAMING_DIRECTORY_STRUCTURE...</div>';
+            try {
+                const response = await fetch('/browse', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ path: path }) });
+                const data = await response.json();
+                document.getElementById('modalCurrentPath').value = data.current_path;
+                list.innerHTML = '';
+                
+                if (data.parent_path && data.current_path !== 'My PC') {
+                    const item = document.createElement('a'); item.className = 'list-group-item list-group-item-action py-3';
+                    item.innerHTML = '<i class="fa-solid fa-arrow-up me-3 opacity-50"></i> <span class="fw-bold small">UP_ONE_LEVEL</span>';
+                    item.onclick = () => browsePath(data.parent_path); list.appendChild(item);
+                }
+                
+                data.dirs.forEach(dir => {
+                    const item = document.createElement('a'); item.className = 'list-group-item list-group-item-action py-3';
+                    item.innerHTML = `<i class="fa-solid fa-folder text-primary opacity-50 me-3"></i> <span class="fw-bold small">${dir}</span>`;
+                    item.onclick = () => {
+                        const sep = data.current_path.endsWith('\\') ? '' : '\\';
+                        browsePath(data.current_path === 'My PC' ? dir : data.current_path + sep + dir);
+                    };
+                    list.appendChild(item);
+                });
+            } catch (e) { list.innerHTML = `<div class="p-4 text-danger">${e.message}</div>`; }
+        }
+
+        function selectCurrentFolder() { 
+            document.getElementById('localPath').value = document.getElementById('modalCurrentPath').value; 
+            pathBrowserModal.hide(); 
+        }
+    </script>
+</body>
+</html>

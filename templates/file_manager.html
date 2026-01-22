@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Explorer - Xtools</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <style>
+        .path-breadcrumb {
+            background: #000;
+            padding: 1rem 1.5rem;
+            border: 2px solid var(--border-color);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 4px 4px 0px 0px var(--primary-color);
+        }
+
+        .path-breadcrumb input {
+            border: none !important;
+            background: transparent !important;
+            width: 100%;
+            outline: none;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--primary-color) !important;
+            font-weight: 800;
+        }
+
+        .clickable-row {
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+        .clickable-row:hover {
+            background-color: var(--primary-color) !important;
+            color: white !important;
+        }
+        .clickable-row:hover .text-muted {
+            color: white !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    {% set active_page = 'file_manager' %}
+    {% include 'sidebar.html' %}
+
+    <div class="main-content">
+        <div class="mb-5">
+            <h1 class="text-uppercase fw-900" style="font-size: 3rem;">File Explorer</h1>
+            <p class="subtitle">LOCAL_STORAGE_MANAGEMENT // FS_ACCESS</p>
+            <p class="text-muted small mt-2 fw-bold" style="max-width: 600px;">Direct interface to the host filesystem. Perform navigation, directory creation, and path management operations with low-level kernel efficiency.</p>
+        </div>
+
+        <!-- Controls -->
+        <div class="d-flex gap-3 mb-4">
+            <button class="btn btn-primary" onclick="refreshFiles()"><i class="fa-solid fa-rotate-right me-2"></i> REFRESH</button>
+            <button class="btn btn-primary" onclick="goUp()"><i class="fa-solid fa-arrow-up me-2"></i> UP_LEVEL</button>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newFolderModal"><i class="fa-solid fa-folder-plus me-2"></i> NEW_DIR</button>
+        </div>
+
+        <!-- Breadcrumb / Path -->
+        <div class="path-breadcrumb">
+            <i class="fa-solid fa-hard-drive text-muted fs-4"></i>
+            <input type="text" id="currentPath" value="C:\" onkeypress="handlePathEnter(event)">
+            <button class="btn btn-sm btn-primary py-1 px-3" onclick="loadPath()">JUMP</button>
+        </div>
+
+        <!-- File Table -->
+        <div class="file-list-container">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 80px;" class="text-center">TYPE</th>
+                        <th>NAME</th>
+                        <th style="width: 200px;">ALLOCATION</th>
+                    </tr>
+                </thead>
+                <tbody id="fileTableBody">
+                    <!-- JS Injected -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- New Folder Modal -->
+    <div class="modal fade" id="newFolderModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create New Folder</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="newFolderName" class="form-control" placeholder="Folder Name">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="createFolder()">Create</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentPath = "C:\\Users\\Admin"; // Default start
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            loadPath(currentPath);
+        });
+
+        function handlePathEnter(e) {
+            if (e.key === 'Enter') loadPath();
+        }
+
+        async function loadPath(path = null) {
+            const targetPath = path || document.getElementById('currentPath').value;
+            
+            try {
+                const response = await fetch('/fm/list', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ path: targetPath })
+                });
+
+                if (!response.ok) {
+                    alert("Error accessing path");
+                    return;
+                }
+
+                const data = await response.json();
+                currentPath = data.current_path;
+                document.getElementById('currentPath').value = currentPath;
+
+                const tbody = document.getElementById('fileTableBody');
+                tbody.innerHTML = '';
+
+                // Directories
+                data.dirs.forEach(dir => {
+                    const tr = document.createElement('tr');
+                    tr.className = "clickable-row";
+                    const separator = currentPath.endsWith('\\') ? '' : '\\';
+                    const fullPath = `${currentPath}${separator}${dir}`;
+                    tr.innerHTML = `
+                        <td class="text-center"><i class="fa-solid fa-folder text-warning fa-lg"></i></td>
+                        <td class="fw-bold">${dir}</td>
+                        <td class="text-muted">-</td>
+                    `;
+                    tr.onclick = (e) => {
+                        loadPath(fullPath);
+                    };
+                    tbody.appendChild(tr);
+                });
+
+                // Files
+                data.files.forEach(file => {
+                    const tr = document.createElement('tr');
+                    const separator = currentPath.endsWith('\\') ? '' : '\\';
+                    const fullPath = `${currentPath}${separator}${file}`;
+                    tr.innerHTML = `
+                        <td class="text-center"><i class="fa-regular fa-file text-secondary fa-lg"></i></td>
+                        <td>${file}</td>
+                        <td class="text-muted">File</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        function goUp() {
+            // Simple string manipulation for parent
+            const parts = currentPath.split('\\');
+            if (parts.length > 1) {
+                parts.pop(); // remove last
+                // If becomes "C:", make it "C:\"
+                let newPath = parts.join('\\');
+                if (newPath.endsWith(':')) newPath += '\\';
+                if (newPath === '') newPath = currentPath; // Root safety
+                loadPath(newPath);
+            }
+        }
+
+        function refreshFiles() {
+            loadPath(currentPath);
+        }
+
+        async function createFolder() {
+            const name = document.getElementById('newFolderName').value;
+            if(!name) return;
+
+            await fetch('/fm/mkdir', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ path: currentPath, name: name })
+            });
+
+            // Close modal manually via bootstrap API or simple refresh
+            const modal = bootstrap.Modal.getInstance(document.getElementById('newFolderModal'));
+            modal.hide();
+            refreshFiles();
+        }
+
+
+    </script>
+</body>
+</html>

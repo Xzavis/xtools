@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ paste.title }} - Nexus Core Snippet</title>
+    <!-- Bootstrap 5 & FontAwesome -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Highlight.js for Code Syntax -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    
+    <style>
+        .paste-header-block {
+            background: var(--color-bg-surface);
+            border: var(--border-thickness) solid var(--color-border);
+            padding: var(--space-lg);
+            margin-bottom: var(--space-lg);
+            box-shadow: 10px 10px 0px 0px var(--color-primary);
+        }
+
+        .paste-content-container {
+            background: #050505;
+            border: var(--border-thickness) solid var(--color-border);
+            padding: var(--space-xl);
+            min-height: 600px;
+            box-shadow: 12px 12px 0px 0px #000;
+        }
+
+        /* Markdown Neubrutalism */
+        .markdown-body {
+            line-height: 1.8;
+            font-size: 1.05rem;
+        }
+        .markdown-body h1, .markdown-body h2 {
+            border-bottom: var(--border-thickness) solid var(--color-primary);
+            padding-bottom: var(--space-xs);
+            margin-top: var(--space-lg);
+            color: var(--color-accent);
+        }
+        .markdown-body pre {
+            background: #000 !important;
+            border: var(--border-thickness) solid var(--color-border) !important;
+            padding: var(--space-md) !important;
+            margin: var(--space-md) 0;
+            box-shadow: 6px 6px 0px 0px var(--color-primary);
+        }
+        .markdown-body blockquote {
+            background: var(--color-bg-surface);
+            border: var(--border-thickness) solid var(--color-border);
+            border-left: var(--border-thick) solid var(--color-accent);
+            padding: var(--space-md);
+            margin: var(--space-md) 0;
+            box-shadow: 4px 4px 0px 0px #000;
+        }
+        
+        .meta-badge {
+            background: #000;
+            border: 1px solid var(--color-border);
+            padding: 4px 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--color-accent);
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    {% set active_page = 'pastebin' %}
+    {% include 'sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content">
+        
+        <!-- Header Block -->
+        <div class="paste-header-block">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="m-0 mb-3" style="font-size: 3rem; letter-spacing: -2px;">{{ paste.title }}</h1>
+                    <div class="d-flex gap-3 align-items-center">
+                        <span class="meta-badge"><i class="fa-regular fa-clock me-2"></i><span id="dateDisplay"></span></span>
+                        <span class="meta-badge"><i class="fa-solid fa-microchip me-2"></i>{{ paste.category | upper }}</span>
+                        {% if paste.tags %}
+                        <span class="meta-badge"><i class="fa-solid fa-hashtag me-2"></i>{{ paste.tags | upper }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="d-flex gap-3">
+                    <a href="/download/{{ paste.id }}" class="btn btn-primary px-4">
+                        <i class="fa-solid fa-download me-2"></i> EXPORT_RAW
+                    </a>
+                    <button onclick="copyContent()" class="btn px-4" title="Copy Raw Content">
+                        <i class="fa-solid fa-copy me-2"></i> CLONE_BUFFER
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rendered Content -->
+        <div class="paste-content-container">
+            <div id="renderedMarkdown" class="markdown-body"></div>
+        </div>
+        
+        <!-- Raw Content Hidden for JS access -->
+        <textarea id="rawContent" style="display:none;">{{ paste.content }}</textarea>
+
+    </div>
+
+        <!-- Rendered Content -->
+        <div class="paste-content-card">
+            <div id="renderedMarkdown" class="markdown-body"></div>
+        </div>
+        
+        <!-- Raw Content Hidden for JS access -->
+        <textarea id="rawContent" style="display:none;">{{ paste.content }}</textarea>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script>
+        // Format Date
+        const timestamp = {{ paste.created_at }};
+        const date = new Date(timestamp * 1000);
+        document.getElementById('dateDisplay').innerText = date.toLocaleString();
+
+        // Render Markdown
+        const rawContent = document.getElementById('rawContent').value;
+        const renderer = new marked.Renderer();
+        
+        // Setup Highlight.js
+        marked.setOptions({
+            renderer: renderer,
+            highlight: function(code, lang) {
+                const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                return hljs.highlight(code, { language }).value;
+            },
+            langPrefix: 'hljs language-',
+            breaks: true,
+            gfm: true
+        });
+
+        document.getElementById('renderedMarkdown').innerHTML = marked.parse(rawContent);
+
+        // Copy Function
+        function copyContent() {
+            navigator.clipboard.writeText(rawContent).then(() => {
+                alert("Raw content copied to clipboard!");
+            });
+        }
+    </script>
+</body>
+</html>

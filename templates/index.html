@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xtools - Operations Center</title>
+    <!-- Bootstrap 5 & FontAwesome -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <style>
+        /* Small page-specific adjustments if any */
+        .input-group-custom {
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        .action-btn {
+            padding: 2rem 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .action-btn i {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    {% set active_page = 'dashboard' %}
+    {% include 'sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content">
+        
+        <div class="d-flex justify-content-between align-items-end mb-5">
+            <div>
+                <h1 class="text-uppercase m-0" style="font-size: 3rem;">Operations</h1>
+                <p class="subtitle">SYSTEM_ROOT // LARGE_FILE_PROCESSOR</p>
+            </div>
+            <div class="badge bg-black border border-success text-success px-4 py-3 fw-800" style="box-shadow: 4px 4px 0px 0px #00ff00;">
+                <i class="fa-solid fa-bolt me-2"></i> KERNEL_ACTIVE
+            </div>
+        </div>
+
+        <!-- Main Processing Card -->
+        <div class="app-card p-5">
+            
+            <!-- Path Input -->
+            <label class="form-label fw-800 text-primary small text-uppercase mb-3">01 // TARGET_SOURCE</label>
+            <div class="d-flex gap-3 mb-4">
+                <input type="text" id="filePath" class="form-control form-control-lg" placeholder="ENTER_SOURCE_FILE_PATH">
+                <button class="btn btn-primary px-4" type="button" onclick="openBrowser('filePath')">
+                    <i class="fa-solid fa-folder-open"></i> BROWSE
+                </button>
+            </div>
+
+            <label class="form-label fw-800 text-primary small text-uppercase mb-3">02 // OUTPUT_DESTINATION</label>
+            <div class="d-flex gap-3 mb-2">
+                <input type="text" id="destPath" class="form-control form-control-lg" placeholder="ENTER_OUTPUT_DIRECTORY (LEAVE_EMPTY_FOR_SAME_AS_SOURCE)">
+                <button class="btn btn-primary px-4" type="button" onclick="openBrowser('destPath')">
+                    <i class="fa-solid fa-folder-tree"></i> SELECT
+                </button>
+            </div>
+            <div class="d-flex justify-content-between small text-muted mb-5">
+                <span class="fw-bold">SUPPORTED: .safetensors, .csv, .json, .bin</span>
+                <span class="text-uppercase">Custom_Output_Path_Enabled</span>
+            </div>
+
+            <hr class="border-secondary my-5 opacity-25">
+
+            <!-- Options Grid -->
+            <div class="row">
+                <div class="col-md-8">
+                    <label class="form-label fw-800 text-primary small text-uppercase mb-3">03 // SELECT_METHOD</label>
+                    <div class="action-grid">
+                        <div class="action-btn selected" onclick="selectMode('split')">
+                            <i class="fa-solid fa-scissors"></i>
+                            <div class="fw-bold h5">SPLIT</div>
+                            <small class="text-muted" style="font-size: 0.65rem;">Partition large neural weights or datasets into manageable chunks for easy transfer or FAT32 compatibility.</small>
+                        </div>
+                        <div class="action-btn" onclick="selectMode('merge')">
+                            <i class="fa-solid fa-puzzle-piece"></i>
+                            <div class="fw-bold h5">MERGE</div>
+                            <small class="text-muted" style="font-size: 0.65rem;">Reconstruct segmented files back into their original binary manifest using auto-detection logic.</small>
+                        </div>
+                        <div class="action-btn" onclick="selectMode('convert')">
+                            <i class="fa-solid fa-code"></i>
+                            <div class="fw-bold h5">JSON</div>
+                            <small class="text-muted" style="font-size: 0.65rem;">Extract header metadata from safetensors or convert tabular CSV data into structured JSON objects.</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <label class="form-label fw-800 text-primary small text-uppercase mb-3">03 // PARAMS</label>
+                    <div class="p-4 bg-black border border-secondary h-100">
+                        <div id="splitConfig">
+                            <label class="small fw-bold text-muted mb-2 text-uppercase">Block_Size</label>
+                            <select id="chunkSize" class="form-select mb-4">
+                                <option value="500MB">500 MB (LEGACY_SAFE)</option>
+                                <option value="1GB">1 GB (STANDARD)</option>
+                                <option value="2GB" selected>2 GB (OPTIMIZED)</option>
+                                <option value="4GB">4 GB (HIGH_SPEED)</option>
+                            </select>
+                            <div class="alert bg-primary bg-opacity-10 border-primary text-primary small py-2 rounded-0">
+                                <i class="fa-solid fa-info-circle me-2"></i> Generating part001...N
+                            </div>
+                        </div>
+                        <div id="mergeConfig" style="display:none;">
+                            <div class="alert bg-warning bg-opacity-10 border-warning text-warning small py-2 rounded-0">
+                                <i class="fa-solid fa-triangle-exclamation me-2"></i> AUTO_DETECT_SEGMENTS_IN_DIR
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Start Button -->
+            <button onclick="startProcess()" class="btn btn-primary w-100 mt-5 py-4 h4 mb-0">
+                <i class="fa-solid fa-play-circle me-2"></i> EXECUTE_SEQUENCE
+            </button>
+
+        </div>
+
+        <!-- Visualization / Terminal -->
+        <div id="statusSection" class="mt-5" style="display:none;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-800 text-uppercase m-0">LIVE_TELEMETRY</h5>
+                <div class="d-flex align-items-center gap-3">
+                    <div id="telemetryStatus" class="small fw-bold text-primary animate-pulse">
+                        <i class="fa-solid fa-circle-notch fa-spin me-1"></i> LINK_ACTIVE
+                    </div>
+                    <span id="percentageBadge" class="btn btn-sm btn-primary py-1 px-3 fw-800">0%</span>
+                </div>
+            </div>
+            
+            <div class="progress mb-4" style="height: 12px;">
+                <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+            </div>
+
+            <!-- Advanced Terminal Window -->
+            <div class="app-card p-0 overflow-hidden border-primary" style="box-shadow: 10px 10px 0px 0px #000;">
+                <div class="bg-black p-2 px-3 border-bottom border-secondary d-flex justify-content-between align-items-center">
+                    <div class="d-flex gap-2">
+                        <div class="bg-danger rounded-circle" style="width: 8px; height: 8px;"></div>
+                        <div class="bg-warning rounded-circle" style="width: 8px; height: 8px;"></div>
+                        <div class="bg-success rounded-circle" style="width: 8px; height: 8px;"></div>
+                    </div>
+                    <small class="text-muted fw-800" style="font-size: 0.6rem; letter-spacing: 2px;">CORE_PROCESS_MONITOR</small>
+                    <div style="width: 30px;"></div>
+                </div>
+                <div class="terminal-window p-4" id="terminalLog" style="height: 300px; font-size: 0.8rem; line-height: 1.6;">
+                    <div class="text-primary fw-bold">[${new Date().toLocaleTimeString()}] >> KERNEL_INTERFACE_V3_READY...</div>
+                    <div class="text-muted">[${new Date().toLocaleTimeString()}] >> AWAITING_SEQUENCE_START...</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- File Browser Modal -->
+    <div class="modal fade" id="fileBrowserModal" tabindex="-1" aria-labelledby="fileBrowserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="fileBrowserModalLabel">Select a File</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group input-group-sm mb-3">
+                        <button class="btn btn-outline-secondary" type="button" onclick="browseTo('::DRIVES::')" title="My PC"><i class="fa-solid fa-computer"></i></button>
+                        <span class="input-group-text bg-white"><i class="fa-solid fa-folder-tree"></i></span>
+                        <input type="text" id="currentPathInput" class="form-control" placeholder="Path (e.g., C:\)">
+                        <button class="btn btn-primary" type="button" onclick="jumpToPath()">GO</button>
+                        <button class="btn btn-accent" type="button" onclick="confirmDirSelection()" id="selectDirBtn">SELECT_CURRENT_DIR</button>
+                    </div>
+                    <div id="fileList" class="list-group">
+                        <!-- Content will be injected by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentMode = 'split';
+        let fileBrowser;
+        let currentTargetInput = 'filePath';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fileBrowser = new bootstrap.Modal(document.getElementById('fileBrowserModal'));
+        });
+
+        function selectMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.action-btn').forEach(btn => btn.classList.remove('selected'));
+            document.querySelector(`.action-btn[onclick="selectMode('${mode}')"]`).classList.add('selected');
+            
+            document.getElementById('splitConfig').style.display = mode === 'split' ? 'block' : 'none';
+            document.getElementById('mergeConfig').style.display = mode !== 'split' ? 'block' : 'none';
+        }
+
+        function logToTerminal(message) {
+            const terminal = document.getElementById('terminalLog');
+            const newLine = document.createElement('div');
+            const time = new Date().toLocaleTimeString();
+            
+            let colorClass = 'text-main';
+            let prefix = '>> ';
+            
+            const msg = message.toUpperCase();
+            if(msg.includes('SUCCESS')) { colorClass = 'text-success fw-bold'; prefix = 'OK '; }
+            else if(msg.includes('ERROR')) { colorClass = 'text-danger fw-bold'; prefix = '!! '; }
+            else if(msg.includes('STARTING') || msg.includes('SPLITTING') || msg.includes('MERGING')) { colorClass = 'text-primary'; prefix = '.. '; }
+            
+            newLine.className = colorClass;
+            newLine.innerHTML = `<span class="text-muted">[${time}]</span> ${prefix}${message}`;
+            terminal.appendChild(newLine);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        async function openBrowser(targetId) {
+            currentTargetInput = targetId || 'filePath';
+            fileBrowser.show();
+            
+            // Show/Hide directory selection button based on target
+            const dirBtn = document.getElementById('selectDirBtn');
+            if (currentTargetInput === 'destPath') {
+                dirBtn.style.display = 'block';
+            } else {
+                dirBtn.style.display = 'none';
+            }
+
+            const currentPath = document.getElementById(currentTargetInput).value;
+            await browseTo(currentPath || ''); 
+        }
+
+        function confirmDirSelection() {
+            const currentPath = document.getElementById('currentPathInput').value;
+            if (currentPath === 'My PC') {
+                alert("Please select a specific drive or folder.");
+                return;
+            }
+            document.getElementById(currentTargetInput).value = currentPath;
+            fileBrowser.hide();
+        }
+
+        // Handle Enter key on path input
+        document.addEventListener('keydown', (e) => {
+            if (e.target.id === 'currentPathInput' && e.key === 'Enter') {
+                jumpToPath();
+            }
+        });
+
+        function jumpToPath() {
+            const path = document.getElementById('currentPathInput').value;
+            browseTo(path);
+        }
+
+        async function browseTo(path) {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '<div class="list-group-item">Loading...</div>';
+
+            try {
+                const response = await fetch('/browse', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ path: path })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    fileList.innerHTML = `<div class="list-group-item text-danger">Error: ${data.error}</div>`;
+                    return;
+                }
+
+                document.getElementById('currentPathInput').value = data.current_path;
+                fileList.innerHTML = '';
+
+                // Add "Up" directory item if not at root
+                if (data.current_path !== data.parent_path) {
+                    const parentItem = document.createElement('a');
+                    parentItem.href = "#";
+                    parentItem.className = 'list-group-item list-group-item-action file-item';
+                    parentItem.innerHTML = '<i class="fa-solid fa-arrow-turn-up text-primary"></i> .. (Parent Directory)';
+                    parentItem.onclick = (e) => {
+                        e.preventDefault();
+                        browseTo(data.parent_path);
+                    };
+                    fileList.appendChild(parentItem);
+                }
+
+                // Add directories
+                data.dirs.forEach(dir => {
+                    const item = document.createElement('a');
+                    item.href = "#";
+                    item.className = 'list-group-item list-group-item-action file-item';
+                    item.innerHTML = `<i class="fa-solid fa-folder text-warning"></i> ${dir}`;
+                    item.onclick = (e) => {
+                        e.preventDefault();
+                        const separator = data.current_path.endsWith('\\') ? '' : '\\';
+                        browseTo(`${data.current_path}${separator}${dir}`);
+                    };
+                    fileList.appendChild(item);
+                });
+
+                // Add files
+                data.files.forEach(file => {
+                    const item = document.createElement('a');
+                    item.href = "#";
+                    item.className = 'list-group-item list-group-item-action file-item';
+                    item.innerHTML = `<i class="fa-regular fa-file-lines text-muted"></i> ${file}`;
+                    item.onclick = (e) => {
+                        e.preventDefault();
+                        const separator = data.current_path.endsWith('\\') ? '' : '\\';
+                        selectFile(`${data.current_path}${separator}${file}`);
+                    };
+                    fileList.appendChild(item);
+                });
+
+            } catch (error) {
+                fileList.innerHTML = `<div class="list-group-item text-danger">Network Error: ${error.message}</div>`;
+            }
+        }
+
+        function selectFile(fullPath) {
+            document.getElementById(currentTargetInput).value = fullPath;
+            fileBrowser.hide();
+        }
+
+        function startProcess() {
+            const path = document.getElementById('filePath').value;
+            const dest = document.getElementById('destPath').value;
+            const size = document.getElementById('chunkSize').value;
+            
+            if(!path) { 
+                alert("Please select or enter a valid source path."); 
+                return; 
+            }
+
+            document.getElementById('statusSection').style.display = 'block';
+            logToTerminal(`Initializing ${currentMode.toUpperCase()} sequence on: ${path}`);
+            if(dest) logToTerminal(`Output target redirected to: ${dest}`);
+
+            fetch('/action', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({mode: currentMode, path, dest_path: dest, size})
+            });
+
+            const interval = setInterval(async () => {
+                try {
+                    const res = await fetch('/progress');
+                    const data = await res.json();
+                    
+                    document.getElementById('progressBar').style.width = data.percentage + '%';
+                    document.getElementById('percentageBadge').innerText = data.percentage + '%';
+                    
+                    const lastLog = document.getElementById('terminalLog').lastElementChild.innerText;
+                    if (!lastLog.includes(data.status)) {
+                        logToTerminal(data.status);
+                    }
+
+                    if(data.status.toLowerCase().includes("success") || data.status.toLowerCase().includes("error")) {
+                        clearInterval(interval);
+                    }
+                } catch (e) {
+                    logToTerminal(`Error polling status: ${e.message}`);
+                    clearInterval(interval);
+                }
+            }, 800);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snippet Lab - Xtools</title>
+    <!-- Bootstrap 5 & FontAwesome -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- EasyMDE Markdown Editor -->
+    <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
+    
+    <style>
+        .main-content {
+            padding: var(--space-lg) var(--space-xl);
+        }
+
+        .editor-section {
+            box-shadow: 12px 12px 0px 0px #000;
+            border: var(--border-thickness) solid var(--color-border);
+        }
+
+        /* EasyMDE Neubrutalism Overrides */
+        .EasyMDEContainer {
+            border: none;
+        }
+        .editor-toolbar {
+            background: var(--color-bg-surface);
+            border: none;
+            border-bottom: var(--border-thickness) solid var(--color-border);
+            border-radius: 0;
+            padding: var(--space-xs) var(--space-sm);
+        }
+        .editor-toolbar i { color: var(--color-text-main); }
+        .editor-toolbar a:hover, .editor-toolbar a.active {
+            background: var(--color-primary) !important;
+            border: 1px solid var(--color-accent) !important;
+        }
+        .CodeMirror {
+            background: #050505 !important;
+            color: var(--color-text-main) !important;
+            border: none;
+            border-radius: 0;
+            font-family: var(--font-body);
+            font-size: 1rem;
+            padding: var(--space-md);
+        }
+
+        .settings-panel {
+            background: var(--color-bg-surface);
+            border: var(--border-thickness) solid var(--color-border);
+            padding: var(--space-md);
+            box-shadow: 8px 8px 0px 0px var(--color-primary);
+        }
+
+        .settings-group-title {
+            font-family: var(--font-heading);
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: var(--color-accent);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: var(--space-md);
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: var(--space-xs);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    {% set active_page = 'pastebin' %}
+    {% include 'sidebar.html' %}
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="d-flex justify-content-between align-items-end mb-5">
+            <div>
+                <h1 class="m-0" style="font-size: 3.5rem;">Snippet Lab</h1>
+                <p class="subtitle">CREATE_NEW_DATA_PERSISTENCE // MARKDOWN_COMPATIBLE</p>
+            </div>
+            <button onclick="savePaste()" class="btn btn-primary px-5 py-3 h5 mb-0">
+                <i class="fa-solid fa-cloud-arrow-up me-2"></i> COMMIT_TO_DATABASE
+            </button>
+        </div>
+
+        <form id="pasteForm">
+            <div class="row g-5">
+                <!-- Left: Editor -->
+                <div class="col-lg-9">
+                    <div class="editor-section">
+                        <textarea id="markdown-editor"></textarea>
+                    </div>
+                    <div id="saveStatus" class="mt-4"></div>
+                </div>
+
+                <!-- Right: Settings -->
+                <div class="col-lg-3">
+                    <div class="settings-panel">
+                        <div class="settings-group-title">Configuration_Params</div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label">Identifier_Title</label>
+                            <input type="text" class="form-control" id="pasteTitle" placeholder="Untitled_Object">
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Classification</label>
+                            <select class="form-select" id="pasteCategory">
+                                <option value="none">UNCLASSIFIED</option>
+                                <option value="snippet">CODE_SNIPPET</option>
+                                <option value="script">AUTOMATION_SCRIPT</option>
+                                <option value="prompt">AI_PROMPT_ENGINEERING</option>
+                                <option value="api">API_SPECIFICATION</option>
+                                <option value="sql">DATABASE_QUERY</option>
+                                <option value="tutorial">DOCUMENTATION</option>
+                                <option value="log">SYSTEM_LOG_DUMP</option>
+                                <option value="config">ENV_CONFIGURATION</option>
+                                <option value="math">ALGORITHM_LOGIC</option>
+                                <option value="todo">DEVELOPMENT_NOTES</option>
+                                <option value="bug">BUG_REPRODUCTION</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Index_Tags</label>
+                            <input type="text" class="form-control" id="pasteTags" placeholder="key1, key2...">
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Lifespan_Control</label>
+                            <select class="form-select" id="pasteExpiration">
+                                <option value="never">PERSISTENT</option>
+                                <option value="10m">10_MINUTES</option>
+                                <option value="1h">1_HOUR</option>
+                                <option value="1d">24_HOURS</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Access_Level</label>
+                            <select class="form-select" id="pasteExposure">
+                                <option value="public">GLOBAL_ACCESS</option>
+                                <option value="unlisted">HIDDEN_LINK</option>
+                                <option value="private">RESTRICTED</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Security_Key</label>
+                            <input type="password" class="form-control" id="pastePassword" placeholder="ENCRYPTION_KEY...">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
+    <script>
+        // Initialize EasyMDE
+        const easyMDE = new EasyMDE({ 
+            element: document.getElementById('markdown-editor'),
+            placeholder: "Type your markdown here...",
+            spellChecker: false,
+            status: ["lines", "words", "cursor"],
+            maxHeight: "600px"
+        });
+
+        async function savePaste() {
+            const content = easyMDE.value();
+            if (!content.trim()) {
+                alert("Paste content cannot be empty!");
+                return;
+            }
+
+            const data = {
+                title: document.getElementById('pasteTitle').value || "Untitled",
+                content: content,
+                category: document.getElementById('pasteCategory').value,
+                tags: document.getElementById('pasteTags').value,
+                expiration: document.getElementById('pasteExpiration').value,
+                exposure: document.getElementById('pasteExposure').value,
+                folder: document.getElementById('pasteFolder').value,
+                password: document.getElementById('pastePassword').value
+            };
+
+            const statusDiv = document.getElementById('saveStatus');
+            statusDiv.innerHTML = '<span class="text-primary"><i class="fa-solid fa-spinner fa-spin"></i> Saving...</span>';
+
+            try {
+                const response = await fetch('/save_paste', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    window.location.href = `/paste/${result.id}`;
+                } else {
+                    statusDiv.innerHTML = `<div class="alert alert-danger">Error: ${result.error}</div>`;
+                }
+
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="alert alert-danger">Network Error: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>
