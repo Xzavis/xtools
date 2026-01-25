@@ -482,30 +482,75 @@ def analyze_dataset():
     try:
         data = request.json
         file_path = data.get('path')
-        if not os.path.exists(file_path): return jsonify({"error": "File not found"}), 404
+        if not file_path or not os.path.exists(file_path): 
+            return jsonify({"error": "File not found"}), 404
         
-        ext = file_path.split('.')[-1].lower()
+        file_path_lower = file_path.lower()
+        is_gz = file_path_lower.endswith('.gz')
         df = None
-        if ext == 'csv':
+        total_rows = 0
+
+        # Format detection
+        if file_path_lower.endswith('.csv'):
             df = pd.read_csv(file_path)
-        elif ext in ['xlsx', 'xls']:
+            total_rows = len(df)
+        elif file_path_lower.endswith(('.xlsx', '.xls')):
             df = pd.read_excel(file_path)
-        elif ext == 'json':
+            total_rows = len(df)
+        elif file_path_lower.endswith('.json') and not file_path_lower.endswith('.jsonl'):
             df = pd.read_json(file_path)
+            total_rows = len(df)
+        elif file_path_lower.endswith('.jsonl') or file_path_lower.endswith('.jsonl.gz'):
+            import gzip
+            open_func = gzip.open if is_gz else open
+            mode = 'rt' if is_gz else 'r'
+            
+            records = []
+            with open_func(file_path, mode, encoding='utf-8', errors='replace') as f:
+                for i, line in enumerate(f):
+                    if i < 1000:
+                        try:
+                            line_data = json.loads(line)
+                            if line_data: records.append(line_data)
+                        except: pass
+                    else: break
+            
+            if records:
+                df = pd.DataFrame(records)
+                # Count total lines efficiently
+                with open_func(file_path, mode, encoding='utf-8', errors='replace') as f:
+                    total_rows = sum(1 for _ in f)
+            else:
+                return jsonify({"error": "Could not parse any valid JSON objects from file"}), 400
         
-        if df is None: return jsonify({"error": "Unsupported dataset format"}), 400
+        if df is None:
+            return jsonify({"error": "Unsupported or unrecognized dataset format"}), 400
+
+        # Safe duplicate detection (JSONL often has dicts/lists which are unhashable)
+        duplicates = 0
+        try:
+            # Only check for duplicates if columns are hashable
+            duplicates = int(df.duplicated().sum())
+        except TypeError:
+            # If nested data exists, stringify for a rough duplicate count or skip
+            try:
+                duplicates = int(df.astype(str).duplicated().sum())
+            except:
+                duplicates = "Unsupported (Nested Data)"
 
         analysis = {
-            "total_rows": len(df),
+            "total_rows": total_rows,
             "columns": list(df.columns),
-            "duplicates": int(df.duplicated().sum()),
+            "duplicates": duplicates,
             "null_values": int(df.isnull().sum().sum()),
-            "memory_usage": f"{df.memory_usage(deep=True).sum() / 1024**2:.2f} MB",
+            "memory_usage": f"{os.path.getsize(file_path) / 1024**2:.2f} MB",
             "sample": df.head(5).to_dict(orient='records')
         }
         return jsonify(analysis)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"error": f"Analysis failed: {str(e)}"}), 500
 
 @app.route('/api/intel/clean_dataset', methods=['POST'])
 def clean_dataset():
@@ -541,10 +586,61 @@ def inspect_model():
     try:
         data = request.json
         file_path = data.get('path')
-        if not os.path.exists(file_path): return jsonify({"error": "File not found"}), 404
+        if not file_path or not os.path.exists(file_path): 
+            return jsonify({"error": "File not found"}), 404
 
-        if not file_path.endswith('.safetensors'):
-            return jsonify({"error": "Currently only .safetensors inspection is supported"}), 400
+        file_path_lower = file_path.lower()
+        
+        # Handle JSONL / JSONL.GZ within Neural Inspector
+        if file_path_lower.endswith(('.jsonl', '.jsonl.gz')):
+            import gzip
+            is_gz = file_path_lower.endswith('.gz')
+            open_func = gzip.open if is_gz else open
+            mode = 'rt' if is_gz else 'r'
+            
+            # Extract Schema and Sample
+            first_line = None
+            total_records = 0
+            try:
+                with open_func(file_path, mode, encoding='utf-8', errors='replace') as f:
+                    for i, line in enumerate(f):
+                        if i == 0:
+                            try: first_line = json.loads(line)
+                            except: pass
+                        total_records += 1
+            except: pass
+
+            if not first_line:
+                return jsonify({"error": "Failed to parse JSONL schema"}), 400
+
+            # Convert JSONL fields into "Virtual Tensors" for the UI
+            virtual_tensors = []
+            for key, value in first_line.items():
+                dtype = type(value).__name__
+                shape = [total_records]
+                if isinstance(value, list): shape.append(len(value))
+                elif isinstance(value, dict): shape.append(len(value.keys()))
+                
+                virtual_tensors.append({
+                    "name": f"field.{key}",
+                    "shape": shape,
+                    "dtype": dtype.upper()
+                })
+
+            return jsonify({
+                "metadata": {
+                    "format": "JSON_Lines" + (".GZ" if is_gz else ""),
+                    "total_records": total_records,
+                    "arch": "Data_Manifest",
+                    "file_size": f"{os.path.getsize(file_path) / 1024**2:.2f} MB"
+                },
+                "total_tensors": len(virtual_tensors),
+                "tensors": virtual_tensors,
+                "is_dataset": True
+            })
+
+        if not file_path_lower.endswith('.safetensors'):
+            return jsonify({"error": "Currently only .safetensors and .jsonl/.gz inspection is supported"}), 400
 
         with open(file_path, 'rb') as f:
             header_size_bytes = f.read(8)
