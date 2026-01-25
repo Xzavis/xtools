@@ -67,28 +67,57 @@
         
         /* Advanced Scrolling Viewport */
         .neural-viewport {
-            max-height: 550px;
+            max-height: 600px;
             overflow-y: auto;
             border: var(--border-thickness) solid var(--color-border);
             background: #000;
             position: relative;
-            box-shadow: inset 0 0 30px rgba(0,0,0,1);
+            box-shadow: inset 0 0 40px rgba(0,0,0,0.9);
         }
-        .neural-viewport table { border-collapse: separate; border-spacing: 0; }
+        .neural-viewport table { border-collapse: separate; border-spacing: 0; width: 100%; }
         .neural-viewport thead th {
             position: sticky;
             top: 0;
             background: var(--color-bg-surface);
             z-index: 20;
-            border-bottom: var(--border-thickness) solid var(--color-primary);
-            box-shadow: 0 4px 0 0 #000;
+            border-bottom: var(--border-thick) solid var(--color-primary);
+            padding: 15px;
+            font-size: 0.75rem;
         }
-        .neural-viewport::-webkit-scrollbar { width: 6px; }
-        .neural-viewport::-webkit-scrollbar-track { background: #000; }
-        .neural-viewport::-webkit-scrollbar-thumb { 
-            background: var(--color-primary);
+        .neural-viewport tbody td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #1a1a1a;
+            vertical-align: middle;
         }
-        .neural-viewport::-webkit-scrollbar-thumb:hover { background: var(--color-accent); }
+        .neural-viewport tbody tr:hover {
+            background: rgba(112, 0, 255, 0.05) !important;
+        }
+
+        /* DType Badges */
+        .dtype-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            font-size: 0.65rem;
+            font-weight: 800;
+            border: 1px solid var(--color-border);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .dtype-f16, .dtype-float16 { background: rgba(112, 0, 255, 0.1); color: #a366ff; border-color: var(--color-primary); }
+        .dtype-f32, .dtype-float32 { background: rgba(204, 255, 0, 0.1); color: var(--color-accent); border-color: var(--color-accent); }
+        .dtype-bf16, .dtype-bfloat16 { background: rgba(255, 61, 0, 0.1); color: #FF3D00; border-color: #FF3D00; }
+        .dtype-int8, .dtype-i8 { background: rgba(0, 255, 204, 0.1); color: #00FFCC; border-color: #00FFCC; }
+        .dtype-str, .dtype-string { background: rgba(0, 153, 255, 0.1); color: #0099FF; border-color: #0099FF; }
+
+        .layer-name {
+            font-family: var(--font-body);
+            font-weight: 600;
+            color: var(--color-text-main);
+            max-width: 350px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -106,9 +135,12 @@
             <h1 class="text-uppercase fw-900" style="font-size: 3.5rem; letter-spacing: -2px;">
                 {% if active_mode == 'dataset' %}Dataset Sanitizer{% else %}Neural Inspector{% endif %}
             </h1>
-            <p class="subtitle">
-                {% if active_mode == 'dataset' %}DATA_REFINERY // CLEAN_MANIFEST{% else %}NEURAL_MANIFEST_ANALYZER // GEOMETRY_EXPLORER{% endif %}
-            </p>
+            <div class="d-flex align-items-center gap-3">
+                <p class="subtitle m-0">
+                    {% if active_mode == 'dataset' %}DATA_REFINERY // CLEAN_MANIFEST{% else %}NEURAL_MANIFEST_ANALYZER // GEOMETRY_EXPLORER{% endif %}
+                </p>
+                <div class="flex-grow-1 border-bottom border-primary border-2 opacity-25"></div>
+            </div>
             <p class="text-muted small mt-2 fw-bold" style="max-width: 600px;">
                 {% if active_mode == 'dataset' %}
                 Advanced data refinery engine. Perform deep analysis on CSV, JSON, and XLSX datasets. Detect duplicates, identify null-pointers, and execute one-click deduplication to prepare manifests for model training.
@@ -123,11 +155,11 @@
             <!-- Dataset Sanitizer Pane -->
             <div id="dataset-pane">
                 <div class="app-card">
-                    <h4 class="mb-4 text-primary">01_ DATASET_INGESTION</h4>
+                    <h4 class="mb-4 text-primary"><span class="text-white">01_</span> DATASET_INGESTION</h4>
                     <div class="d-flex gap-3 mb-2">
                         <input type="text" id="datasetPath" class="form-control" placeholder="ENTER_CSV_JSON_OR_EXCEL_PATH">
                         <button class="btn btn-primary" onclick="openBrowser('datasetPath')"><i class="fa-solid fa-folder-open"></i></button>
-                        <button class="btn btn-primary px-4" onclick="analyzeDataset()">ANALYZE</button>
+                        <button id="analyzeBtn" class="btn btn-primary px-4" onclick="analyzeDataset()">ANALYZE</button>
                     </div>
                     <div class="d-flex gap-2 mb-5">
                         <span class="meta-badge" style="font-size: 0.6rem; color: var(--color-text-muted);">SUPPORTED_FORMATS:</span>
@@ -141,38 +173,41 @@
 
                     <div id="datasetResults" class="d-none">
                         <div class="stat-grid mb-5">
-                            <div class="app-card p-3 mb-0">
+                            <div class="app-card p-4 mb-0" style="border-bottom: var(--border-thick) solid var(--color-primary);">
                                 <label class="form-label">Total_Rows</label>
-                                <div class="h3 fw-900" id="statRows">0</div>
+                                <div class="h2 fw-900" id="statRows">0</div>
                             </div>
-                            <div class="app-card p-3 mb-0">
+                            <div class="app-card p-4 mb-0" style="border-bottom: var(--border-thick) solid #ff3d00;">
                                 <label class="form-label">Duplicates</label>
-                                <div class="h3 fw-900 text-danger" id="statDupes">0</div>
+                                <div class="h2 fw-900 text-danger" id="statDupes">0</div>
                             </div>
-                            <div class="app-card p-3 mb-0">
+                            <div class="app-card p-4 mb-0" style="border-bottom: var(--border-thick) solid var(--color-accent);">
                                 <label class="form-label">Null_Values</label>
-                                <div class="h3 fw-900 text-warning" id="statNulls">0</div>
+                                <div class="h2 fw-900 text-warning" id="statNulls">0</div>
                             </div>
-                            <div class="app-card p-3 mb-0">
-                                <label class="form-label">VRAM_Required</label>
-                                <div class="h3 fw-900 text-primary" id="statMem">0 MB</div>
+                            <div class="app-card p-4 mb-0" style="border-bottom: var(--border-thick) solid #0099ff;">
+                                <label class="form-label">Memory_Footprint</label>
+                                <div class="h2 fw-900 text-info" id="statMem">0 MB</div>
                             </div>
                         </div>
 
                         <div class="row g-4 mb-5">
                             <div class="col-md-8">
-                                <h5 class="mb-3 text-uppercase">BUFFER_PREVIEW (HEAD_5)</h5>
-                                <div class="data-preview-table" id="dataPreview">
+                                <h5 class="mb-3 text-uppercase"><i class="fa-solid fa-table me-2 text-primary"></i>BUFFER_PREVIEW (HEAD_5)</h5>
+                                <div class="data-preview-table" id="dataPreview" style="background: #000; padding: 10px;">
                                     <!-- Table generated by JS -->
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                <h5 class="mb-3 text-uppercase">REFINERY_ACTIONS</h5>
-                                <button class="btn btn-primary w-100 mb-3" onclick="cleanDataset()">
+                                <h5 class="mb-3 text-uppercase"><i class="fa-solid fa-microchip me-2 text-primary"></i>REFINERY_ACTIONS</h5>
+                                <button class="btn btn-primary w-100 mb-3 py-3" onclick="cleanDataset()">
                                     <i class="fa-solid fa-broom me-2"></i> EXECUTE_DEDUPLICATION
                                 </button>
-                                <div class="alert bg-primary bg-opacity-10 border-primary text-primary small py-2 rounded-0">
-                                    <i class="fa-solid fa-info-circle me-2"></i> Cleaned file will be saved with _cleaned suffix.
+                                <div class="app-card bg-black border-primary py-3 mb-0">
+                                    <div class="small text-primary fw-bold">
+                                        <i class="fa-solid fa-shield-halved me-2"></i> SAFETY_PROTOCOL_ACTIVE
+                                    </div>
+                                    <div class="text-muted" style="font-size: 0.7rem;">Cleaned manifests will be saved with a `_cleaned` identifier suffix to preserve source integrity.</div>
                                 </div>
                             </div>
                         </div>
@@ -185,19 +220,21 @@
             <div id="model-pane">
                 <div class="app-card">
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h4 class="m-0 text-primary">01_ MODEL_MANIFEST_INSPECTION</h4>
-                        <div id="modelNameDisplay" class="meta-badge d-none" style="background: var(--color-primary); color: white; border-color: var(--color-accent);">FILE: NONE</div>
+                        <h4 class="m-0 text-primary"><span class="text-white">01_</span> MODEL_MANIFEST_INSPECTION</h4>
+                        <div id="modelNameDisplay" class="meta-badge d-none" style="background: var(--color-primary); color: white; border-color: var(--color-accent); font-size: 0.7rem; padding: 4px 12px;">FILE: NONE</div>
                     </div>
                     
                     <div class="d-flex gap-3 mb-2">
-                        <input type="text" id="modelPath" class="form-control" placeholder="PATH_TO_SAFETENSORS_MODEL">
+                        <input type="text" id="modelPath" class="form-control" placeholder="PATH_TO_SAFETENSORS_OR_JSONL_MODEL">
                         <button class="btn btn-primary" onclick="openBrowser('modelPath')"><i class="fa-solid fa-folder-open"></i></button>
-                        <button class="btn btn-primary px-4" onclick="inspectModel()">INSPECT</button>
+                        <button id="inspectBtn" class="btn btn-primary px-4" onclick="inspectModel()">INSPECT</button>
                     </div>
                     <div class="d-flex gap-2 mb-5">
                         <span class="meta-badge" style="font-size: 0.6rem; color: var(--color-text-muted);">SUPPORTED_FORMATS:</span>
                         <span class="meta-badge" style="font-size: 0.6rem;">.SAFETENSORS</span>
-                        <span class="meta-badge" style="font-size: 0.6rem; opacity: 0.5;">.BIN (LATER)</span>
+                        <span class="meta-badge" style="font-size: 0.6rem;">.JSONL</span>
+                        <span class="meta-badge" style="font-size: 0.6rem;">.JSONL.GZ</span>
+                        <span class="meta-badge" style="font-size: 0.6rem; opacity: 0.3;">.BIN (LEGACY)</span>
                     </div>
 
                     <div id="modelResults" class="d-none animate-fade">
@@ -211,7 +248,7 @@
                                     <!-- Cards will be injected -->
                                 </div>
                                 <h6 class="form-label mb-2">RAW_MANIFEST_DUMP</h6>
-                                <div class="metadata-box" id="modelMeta" style="max-height: 300px; overflow: auto; border-color: var(--color-primary);"></div>
+                                <div class="metadata-box" id="modelMeta" style="max-height: 400px; overflow: auto; border-color: var(--color-primary); background: #000;"></div>
                             </div>
 
                             <!-- Right: Tensor Explorer -->
@@ -219,8 +256,10 @@
                                 <div class="d-flex justify-content-between align-items-center mb-4">
                                     <h5 class="m-0 text-uppercase fw-800"><i class="fa-solid fa-diagram-project me-2 text-primary"></i>GEOMETRY_EXPLORER</h5>
                                     <div class="d-flex gap-2 align-items-center">
-                                        <i class="fa-solid fa-filter text-muted small"></i>
-                                        <input type="text" id="tensorSearch" class="form-control py-1 px-3" style="width: 200px; font-size: 0.75rem;" placeholder="SEARCH_LAYERS..." oninput="filterTensors()">
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-black border-secondary text-muted" style="border-right:none; border-radius:0;"><i class="fa-solid fa-search"></i></span>
+                                            <input type="text" id="tensorSearch" class="form-control py-1 px-3" style="width: 250px; font-size: 0.75rem;" placeholder="FILTER_LAYERS_BY_ID..." oninput="filterTensors()">
+                                        </div>
                                     </div>
                                 </div>
                                 
@@ -228,8 +267,8 @@
                                     <table class="table table-hover mb-0">
                                         <thead>
                                             <tr>
-                                                <th>LAYER_IDENTIFIER</th>
-                                                <th>GEOMETRY</th>
+                                                <th style="width: 55%">LAYER_IDENTIFIER</th>
+                                                <th>GEOMETRY_MAP</th>
                                                 <th class="text-end">PRECISION</th>
                                             </tr>
                                         </thead>
@@ -238,7 +277,10 @@
                                         </tbody>
                                     </table>
                                 </div>
-                                <div id="tensorCount" class="small text-primary fw-800 mt-3 text-uppercase" style="letter-spacing: 1px;"></div>
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <div id="tensorCount" class="small text-primary fw-800 text-uppercase" style="letter-spacing: 1px;"></div>
+                                    <button class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 0.6rem;" onclick="copyAllLayerNames()">COPY_ALL_IDS</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -393,9 +435,10 @@
             if(!path) return;
 
             document.getElementById('modelResults').classList.add('d-none');
-            const btn = event.currentTarget;
+            const btn = document.getElementById('inspectBtn');
             const originalText = btn.innerHTML;
             btn.innerHTML = '<i class="fa-solid fa-sync fa-spin"></i> READING...';
+            btn.disabled = true;
 
             try {
                 const res = await fetch('/api/intel/inspect_model', {
@@ -414,22 +457,22 @@
                 // Core Spec Sheet
                 const specSheet = document.getElementById('specSheet');
                 specSheet.innerHTML = '';
+                
                 const keySpecs = {
-                    'Architecture': data.metadata.format || 'Transformer_Based',
-                    'Format': 'Safetensors_Binary',
-                    'Total_Tensors': data.total_tensors,
+                    'Architecture': data.metadata.arch || 'Transformer_Based',
+                    'Format': data.metadata.format || 'Safetensors_Binary',
+                    'Total_Components': data.total_tensors || data.tensor_count,
                     'Engine': 'Nexus_Inspector_V3'
                 };
                 
-                // Merge actual metadata into spec if available
-                if(data.metadata.arch) keySpecs['Arch_ID'] = data.metadata.arch;
-                if(data.metadata.dtype) keySpecs['Native_DType'] = data.metadata.dtype;
+                if (data.metadata.total_records) keySpecs['Record_Count'] = data.metadata.total_records.toLocaleString();
+                if (data.metadata.file_size) keySpecs['Payload_Size'] = data.metadata.file_size;
 
                 Object.entries(keySpecs).forEach(([k, v]) => {
                     specSheet.innerHTML += `
-                        <div class="app-card p-3 mb-0" style="box-shadow: 4px 4px 0px 0px var(--color-primary);">
-                            <label class="form-label" style="font-size: 0.6rem; color: var(--color-text-muted);">${k}</label>
-                            <div class="fw-900 small text-uppercase">${v}</div>
+                        <div class="app-card p-3 mb-0" style="border-left: 4px solid var(--color-primary); background: #111;">
+                            <label class="form-label" style="font-size: 0.6rem; margin-bottom: 2px;">${k}</label>
+                            <div class="fw-800 small text-uppercase" style="color: var(--color-text-main)">${v}</div>
                         </div>`;
                 });
 
@@ -440,10 +483,13 @@
                 allTensors = data.tensors;
                 renderTensorTable(allTensors);
 
-                document.getElementById('tensorCount').innerText = `>> MAP_INDEX: ${data.total_tensors} TENSORS_DETECTED // SHOWING_HEAD_50`;
+                document.getElementById('tensorCount').innerText = `>> MAP_INDEX: ${data.total_tensors || data.tensor_count} OBJECTS_DETECTED`;
                 document.getElementById('modelResults').classList.remove('d-none');
             } catch (e) { alert(e.message); }
-            finally { btn.innerHTML = originalText; }
+            finally { 
+                btn.innerHTML = originalText; 
+                btn.disabled = false;
+            }
         }
 
         function filterTensors() {
@@ -461,23 +507,47 @@
                 const formattedParams = numParams >= 1000000 ? (numParams / 1000000).toFixed(2) + 'M' : 
                                       numParams >= 1000 ? (numParams / 1000).toFixed(1) + 'K' : numParams;
                 
+                const dtype = (t.dtype || 'unknown').toLowerCase();
                 let dtypeClass = 'dtype-f16';
-                if(t.dtype.includes('F32')) dtypeClass = 'dtype-f32';
-                if(t.dtype.includes('BF16')) dtypeClass = 'dtype-bf16';
+                if(dtype.includes('f32') || dtype.includes('float32')) dtypeClass = 'dtype-f32';
+                if(dtype.includes('bf16') || dtype.includes('bfloat16')) dtypeClass = 'dtype-bf16';
+                if(dtype.includes('int') || dtype.includes('i8')) dtypeClass = 'dtype-int8';
+                if(dtype.includes('str') || dtype.includes('object')) dtypeClass = 'dtype-str';
 
                 tr.innerHTML = `
                     <td>
-                        <div class="small fw-bold text-truncate" style="max-width: 300px;" title="${t.name}">${t.name}</div>
+                        <div class="layer-name" title="${t.name}">${t.name}</div>
+                        <span class="layer-sub">PATH: root.${t.name.split('.').join(' > ')}</span>
                     </td>
                     <td>
-                        <span class="shape-text">${t.shape.join(' × ')}</span>
-                        <span class="param-count">${formattedParams} ELEMENTS</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="geometry-tag small fw-bold">${t.shape.join(' × ')}</span>
+                            <span class="text-muted" style="font-size: 0.65rem;">[${formattedParams}]</span>
+                        </div>
                     </td>
                     <td class="text-end">
                         <span class="dtype-badge ${dtypeClass}">${t.dtype}</span>
                     </td>
                 `;
                 tbody.appendChild(tr);
+            });
+            
+            if (tensors.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center py-5 text-muted">NO_MATCHING_LAYERS_FOUND</td></tr>';
+            }
+        }
+
+        function copyAllLayerNames() {
+            const names = allTensors.map(t => t.name).join('\n');
+            navigator.clipboard.writeText(names).then(() => {
+                const btn = event.currentTarget;
+                const oldText = btn.innerText;
+                btn.innerText = 'COPIED!';
+                btn.classList.replace('btn-outline-secondary', 'btn-primary');
+                setTimeout(() => {
+                    btn.innerText = oldText;
+                    btn.classList.replace('btn-primary', 'btn-outline-secondary');
+                }, 2000);
             });
         }
     </script>
