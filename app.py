@@ -299,6 +299,10 @@ def download_paste(paste_id):
 def hf_downloader_page():
     return render_template('hf_downloader.html')
 
+@app.route('/preview_jsonl')
+def preview_jsonl_page():
+    return render_template('preview_jsonl.html')
+
 @app.route('/api/hf_scan', methods=['POST'])
 def hf_scan():
     data = request.json
@@ -632,6 +636,64 @@ def rag_chunk_logic():
             "success": True,
             "total_chunks": len(chunks),
             "chunks": chunks
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/intel/preview_jsonl', methods=['POST'])
+def preview_jsonl():
+    try:
+        data = request.json
+        file_path = data.get('path')
+        lines_to_read = int(data.get('limit', 20))
+        max_line_length = 50000 # Safeguard against massive lines
+        
+        if not file_path:
+             return jsonify({"error": "Path is required"}), 400
+
+        if not os.path.exists(file_path) or not os.path.isfile(file_path):
+            return jsonify({"error": "File not found or is not a valid file"}), 404
+            
+        preview_data = []
+        is_gz = file_path.lower().endswith('.gz')
+        
+        try:
+            import gzip
+            # Open with gzip if .gz, otherwise normal open
+            open_func = gzip.open if is_gz else open
+            mode = 'rt' if is_gz else 'r' # 'rt' for text mode in gzip
+            
+            with open_func(file_path, mode, encoding='utf-8', errors='replace') as f:
+                for i, line in enumerate(f):
+                    if i >= lines_to_read:
+                        break
+                    
+                    # Safeguard: skip or truncate extremely long lines
+                    if len(line) > max_line_length:
+                        preview_data.append({
+                            "_error": "Line too large to preview", 
+                            "length": len(line),
+                            "preview": line[:1000] + "..."
+                        })
+                        continue
+
+                    clean_line = line.strip()
+                    if not clean_line: continue
+
+                    try:
+                        preview_data.append(json.loads(clean_line))
+                    except json.JSONDecodeError:
+                        preview_data.append({"_error": "Invalid JSON on this line", "raw": clean_line[:200] + "..."})
+        except Exception as e:
+            return jsonify({"error": f"Failed to read file: {str(e)}"}), 500
+        
+        return jsonify({
+            "success": True,
+            "filename": os.path.basename(file_path),
+            "preview": preview_data,
+            "total_previewed": len(preview_data),
+            "file_size": os.path.getsize(file_path),
+            "is_compressed": is_gz
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500

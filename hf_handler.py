@@ -1,8 +1,8 @@
-from huggingface_hub import HfApi
+from huggingface_hub import HfApi, hf_hub_download
 import json
 import os
 from urllib.parse import quote
-from huggingface_hub import HfApi, hf_hub_download
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 class HFHandler:
     def __init__(self):
@@ -74,32 +74,71 @@ class HFHandler:
     def download_files_to_local(self, repo_id, files, local_dir, token=None, repo_type="model"):
         """
         Generator function to download files sequentially to a local directory.
-        Yields progress messages.
+        Includes a robust retry mechanism with exponential backoff.
         """
         try:
             if not os.path.exists(local_dir):
                 os.makedirs(local_dir, exist_ok=True)
             
             total_files = len(files)
-            yield json.dumps({"type": "info", "message": f"Starting local download of {total_files} files to {local_dir}..."}) + "\n"
+            max_retries = 3
+            failed_files = []
+            
+            yield json.dumps({"type": "info", "message": f"Starting robust sequential download of {total_files} files..."}) + "\n"
 
             for index, filename in enumerate(files):
-                try:
-                    yield json.dumps({"type": "progress", "message": f"[{index+1}/{total_files}] Downloading {filename}...", "file": filename}) + "\n"
-                    
-                    hf_hub_download(
-                        repo_id=repo_id,
-                        filename=filename,
-                        local_dir=local_dir,
-                        repo_type=repo_type,
-                        token=token
-                    )
-                    
-                    yield json.dumps({"type": "success", "message": f"Completed: {filename}"}) + "\n"
-                except Exception as e:
-                    yield json.dumps({"type": "error", "message": f"Failed {filename}: {str(e)}"}) + "\n"
+                success = False
+                attempts = 0
+                
+                while not success and attempts < max_retries:
+                    attempts += 1
+                    try:
+                        # Exponential backoff: 2s, 4s, 8s...
+                        wait_time = 2 ** attempts
+                        retry_msg = f" (Attempt {attempts}/{max_retries})" if attempts > 1 else ""
+                        
+                        yield json.dumps({
+                            "type": "progress", 
+                            "message": f"[{index+1}/{total_files}] Downloading {filename}{retry_msg}...", 
+                            "file": filename
+                        }) + "\n"
+                        
+                        hf_hub_download(
+                            repo_id=repo_id,
+                            filename=filename,
+                            local_dir=local_dir,
+                            repo_type=repo_type,
+                            token=token
+                        )
+                        
+                        success = True
+                        yield json.dumps({
+                            "type": "success", 
+                            "message": f"Completed: {filename}"
+                        }) + "\n"
+                    except Exception as e:
+                        if attempts < max_retries:
+                            yield json.dumps({
+                                "type": "warning", 
+                                "message": f"Failed {filename}, retrying in {wait_time}s... Error: {str(e)}"
+                            }) + "\n"
+                            import time
+                            time.sleep(wait_time)
+                        else:
+                            yield json.dumps({
+                                "type": "error", 
+                                "message": f"Permanently failed {filename} after {max_retries} attempts: {str(e)}"
+                            }) + "\n"
+                            failed_files.append(filename)
             
-            yield json.dumps({"type": "done", "message": "All downloads finished."}) + "\n"
+            if not failed_files:
+                yield json.dumps({"type": "done", "message": "All downloads finished successfully."}) + "\n"
+            else:
+                yield json.dumps({
+                    "type": "error", 
+                    "message": f"Finished with {len(failed_files)} failures. Failed files: {', '.join(failed_files)}"
+                }) + "\n"
+                yield json.dumps({"type": "info", "message": "You can re-run the download to attempt resuming failed files."}) + "\n"
 
         except Exception as e:
-            yield json.dumps({"type": "error", "message": f"Critical Error: {str(e)}"}) + "\n"
+            yield json.dumps({"type": "error", "message": f"Critical Error in download manager: {str(e)}"}) + "\n"

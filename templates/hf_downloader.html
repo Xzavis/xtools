@@ -142,6 +142,9 @@
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h4 class="m-0 text-primary"><span class="text-white">02_</span> OBJECT_EXPLORER</h4>
                             <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-primary py-1 px-3" onclick="smartSelectJsonl()" style="font-size: 0.65rem; font-weight: 900;">
+                                    <i class="fa-solid fa-wand-magic-sparkles me-1"></i> SMART_SELECT_JSONL
+                                </button>
                                 <button class="btn btn-sm btn-outline-secondary py-1" onclick="selectAllExtensions(true)">ALL</button>
                                 <button class="btn btn-sm btn-outline-secondary py-1" onclick="selectAllExtensions(false)">NONE</button>
                             </div>
@@ -261,7 +264,7 @@
                 </div>
 
                 <!-- Activity Log -->
-                <div class="app-card p-0 overflow-hidden">
+                <div class="app-card p-0 overflow-hidden mb-4">
                     <div class="terminal-container">
                         <div class="terminal-header">
                             <span><i class="fa-solid fa-terminal me-2"></i> SYSTEM_ACTIVITY_LOG</span>
@@ -269,6 +272,19 @@
                         </div>
                         <div id="systemLog" class="terminal-window flex-grow-1 overflow-auto">
                             <!-- Logs -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- JSONL Preview Block -->
+                <div id="jsonlPreviewArea" class="d-none">
+                    <div class="app-card">
+                        <h6 class="form-label mb-3 d-flex justify-content-between align-items-center">
+                            JSONL_PREVIEW
+                            <span class="badge bg-primary" id="previewFileName"></span>
+                        </h6>
+                        <div id="jsonlPreviewContent" style="max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 0.75rem; background: #000; padding: 10px; border: 1px solid var(--color-border); color: #0f0;">
+                            <!-- Preview lines -->
                         </div>
                     </div>
                 </div>
@@ -427,6 +443,32 @@
             updateFilePreview();
         }
 
+        function smartSelectJsonl() {
+            if (!repoData) return;
+            addLog('Running Smart Select: Filtering for JSONL and JSONL.GZ objects...', 'info');
+            
+            // 1. Find and activate pills for jsonl and gz
+            document.querySelectorAll('.ext-pill').forEach(pill => {
+                const ext = pill.innerText.substring(1).toLowerCase();
+                if (ext === 'jsonl' || ext === 'gz') {
+                    selectedExtensions.add(ext);
+                    pill.classList.add('active');
+                }
+            });
+
+            // 2. Select only files that match these extensions
+            selectedFiles.clear();
+            repoData.files.forEach(f => {
+                const ext = f.extension.toLowerCase();
+                if (ext === 'jsonl' || ext === 'gz') {
+                    selectedFiles.add(f.path);
+                }
+            });
+
+            addLog(`Smart Select complete. Ready to transfer ${selectedFiles.size} objects.`, 'success');
+            updateFilePreview();
+        }
+
         function updateFilePreview() {
             const tbody = document.getElementById('fileTableBody');
             const search = document.getElementById('fileSearch').value.toLowerCase();
@@ -537,11 +579,62 @@
                     decoder.decode(value).split('\n').filter(l => l.trim()).forEach(line => {
                         try {
                             const msg = JSON.parse(line);
-                            addLog(msg.message, msg.type);
+                            
+                            // If a file is successfully downloaded and it's jsonl or jsonl.gz, add a VIEW button
+                            const isJsonl = msg.message.toLowerCase().endsWith('.jsonl');
+                            const isJsonlGz = msg.message.toLowerCase().endsWith('.jsonl.gz');
+                            
+                            if (msg.type === 'success' && msg.message.includes('Completed:') && (isJsonl || isJsonlGz)) {
+                                const filename = msg.message.split('Completed: ')[1].trim();
+                                const fullPath = localPath + (localPath.endsWith('\\') || localPath.endsWith('/') ? '' : '/') + filename;
+                                const safePath = fullPath.replace(/\\/g, '\\\\');
+                                const btnText = isJsonlGz ? 'VIEW_JSONL.GZ' : 'VIEW_JSONL';
+                                
+                                addLog(`${msg.message} <button class="btn btn-primary btn-sm py-0 px-2 ms-2" style="font-size:0.6rem" onclick="loadJsonlPreview('${safePath}', '${filename}')">${btnText}</button>`, msg.type);
+                                
+                                // Auto-trigger preview
+                                loadJsonlPreview(fullPath, filename);
+                            } else {
+                                addLog(msg.message, msg.type);
+                            }
                         } catch (e) {}
                     });
                 }
             } catch (e) { addLog(e.message, 'error'); }
+        }
+
+        async function loadJsonlPreview(path, filename) {
+            const previewArea = document.getElementById('jsonlPreviewArea');
+            const previewContent = document.getElementById('jsonlPreviewContent');
+            const previewName = document.getElementById('previewFileName');
+            
+            previewArea.classList.remove('d-none');
+            previewName.textContent = filename;
+            previewContent.innerHTML = '<div class="text-primary fw-bold">FETCHING_PREVIEW...</div>';
+            
+            try {
+                const response = await fetch('/api/intel/preview_jsonl', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ path: path, limit: 10 })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    previewContent.innerHTML = '';
+                    data.preview.forEach((line, i) => {
+                        const div = document.createElement('div');
+                        div.className = 'mb-2 pb-2 border-bottom border-secondary';
+                        div.style.borderColor = '#333 !important';
+                        div.textContent = `[LINE_${i+1}] ` + JSON.stringify(line, null, 2);
+                        previewContent.appendChild(div);
+                    });
+                } else {
+                    previewContent.innerHTML = `<div class="text-danger">PREVIEW_ERROR: ${data.error}</div>`;
+                }
+            } catch (e) {
+                previewContent.innerHTML = `<div class="text-danger">PREVIEW_CONNECTION_FAILED</div>`;
+            }
         }
 
         function toggleDownloadMode() {
