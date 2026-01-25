@@ -96,7 +96,7 @@ def merge_logic(first_part_path):
         
         match = re.search(r'(.+?)[-.]part\d+(.*)', file_name_with_part)
         if not match:
-            match = re.search(r'(.+?)\.\d{3}$', file_name_with_part)
+            match = re.search(r'(.+?)\.[0-9]{3}$', file_name_with_part)
             if not match:
                 progress_status = {"status": "Error: Invalid part format", "percentage": 0}
                 return
@@ -108,7 +108,7 @@ def merge_logic(first_part_path):
         suffix = match.group(2) if len(match.groups()) > 1 else ""
         
         parts = sorted([os.path.join(dir_name, f) for f in os.listdir(dir_name) 
-                       if f.startswith(prefix) and (suffix in f) and (("-part" in f) or re.search(r'\.\d{3}$', f))])
+                       if f.startswith(prefix) and (suffix in f) and (("-part" in f) or re.search(r'\.[0-9]{3}$', f))])
         
         if not parts:
             progress_status = {"status": "Error: Parts not found", "percentage": 0}
@@ -212,7 +212,7 @@ def browse_files():
         if path == '::DRIVES::':
             drives = []
             for letter in string.ascii_uppercase:
-                drive_path = f"{letter}:\\"
+                drive_path = f"{letter}:\\" 
                 if os.path.exists(drive_path):
                     drives.append(drive_path)
             return jsonify({
@@ -312,7 +312,22 @@ def hf_scan():
 
     if not repo_id: return jsonify({"error": "Repo ID is required"}), 400
 
-    result = hf_handler.scan_repo(repo_id, token, repo_type)
+    result = hf_handler.scan_repo(repo_id, token, repo_type, options=data.get('options'))
+    if result.get('success'):
+        return jsonify(result)
+    else:
+        return jsonify(result), 400
+
+@app.route('/api/hf_search', methods=['POST'])
+def hf_search():
+    data = request.json
+    query = data.get('query', '')
+    limit = int(data.get('limit', 20))
+    sort = data.get('sort', 'downloads')
+    direction = int(data.get('direction', -1))
+    repo_type = data.get('repo_type', 'model')
+    
+    result = hf_handler.search_repositories(query, limit, sort, direction, repo_type)
     if result.get('success'):
         return jsonify(result)
     else:
@@ -361,7 +376,6 @@ def fm_mkdir():
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 
 @app.route('/converter')
@@ -529,10 +543,8 @@ def analyze_dataset():
         # Safe duplicate detection (JSONL often has dicts/lists which are unhashable)
         duplicates = 0
         try:
-            # Only check for duplicates if columns are hashable
             duplicates = int(df.duplicated().sum())
         except TypeError:
-            # If nested data exists, stringify for a rough duplicate count or skip
             try:
                 duplicates = int(df.astype(str).duplicated().sum())
             except:
@@ -581,98 +593,6 @@ def clean_dataset():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/intel/inspect_model', methods=['POST'])
-def inspect_model():
-    try:
-        data = request.json
-        file_path = data.get('path')
-        if not file_path or not os.path.exists(file_path): 
-            return jsonify({"error": "File not found"}), 404
-
-        file_path_lower = file_path.lower()
-        
-        # Handle JSONL / JSONL.GZ within Neural Inspector
-        if file_path_lower.endswith(('.jsonl', '.jsonl.gz')):
-            import gzip
-            is_gz = file_path_lower.endswith('.gz')
-            open_func = gzip.open if is_gz else open
-            mode = 'rt' if is_gz else 'r'
-            
-            # Extract Schema and Sample
-            first_line = None
-            total_records = 0
-            try:
-                with open_func(file_path, mode, encoding='utf-8', errors='replace') as f:
-                    for i, line in enumerate(f):
-                        if i == 0:
-                            try: first_line = json.loads(line)
-                            except: pass
-                        total_records += 1
-            except: pass
-
-            if not first_line:
-                return jsonify({"error": "Failed to parse JSONL schema"}), 400
-
-            # Convert JSONL fields into "Virtual Tensors" for the UI
-            virtual_tensors = []
-            for key, value in first_line.items():
-                dtype = type(value).__name__
-                shape = [total_records]
-                if isinstance(value, list): shape.append(len(value))
-                elif isinstance(value, dict): shape.append(len(value.keys()))
-                
-                virtual_tensors.append({
-                    "name": f"field.{key}",
-                    "shape": shape,
-                    "dtype": dtype.upper()
-                })
-
-            return jsonify({
-                "metadata": {
-                    "format": "JSON_Lines" + (".GZ" if is_gz else ""),
-                    "total_records": total_records,
-                    "arch": "Data_Manifest",
-                    "file_size": f"{os.path.getsize(file_path) / 1024**2:.2f} MB"
-                },
-                "total_tensors": len(virtual_tensors),
-                "tensors": virtual_tensors,
-                "is_dataset": True
-            })
-
-        if not file_path_lower.endswith('.safetensors'):
-            return jsonify({"error": "Currently only .safetensors and .jsonl/.gz inspection is supported"}), 400
-
-        with open(file_path, 'rb') as f:
-            header_size_bytes = f.read(8)
-            header_size = struct.unpack('<Q', header_size_bytes)[0]
-            header_json_bytes = f.read(header_size)
-            header_data = json.loads(header_json_bytes.decode('utf-8'))
-
-        metadata = header_data.get('__metadata__', {})
-        tensors = []
-        for key, val in header_data.items():
-            if key == '__metadata__': continue
-            tensors.append({
-                "name": key,
-                "shape": val.get('shape', []),
-                "dtype": val.get('dtype', 'unknown')
-            })
-
-        return jsonify({
-            "metadata": metadata,
-            "tensor_count": len(tensors),
-            "tensors": tensors[:50], # Return first 50 for preview
-            "total_tensors": len(tensors)
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/compute/<mode>')
-def compute_page(mode):
-    if mode != 'vram':
-        return redirect('/compute/vram')
-    return render_template('compute.html', active_mode=mode)
-
 @app.route('/api/compute/vram_calc', methods=['POST'])
 def vram_calc():
     try:
@@ -682,7 +602,7 @@ def vram_calc():
         context = float(data.get('context', 2048))
         batch_size = float(data.get('batch_size', 1))
 
-        # Weights: (Params * 10^9) * (Bits / 8) / (1024^3) GB
+        # Weights: (Params * 10^9) * (Bits / 8) / (1024**3) GB
         weight_vram = (params * 10**9) * (bits / 8) / (1024**3)
         
         # KV Cache: 2 * layers * hidden_size * context * batch_size * dtype_size
@@ -791,6 +711,23 @@ def preview_jsonl():
             "file_size": os.path.getsize(file_path),
             "is_compressed": is_gz
         })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Cache management endpoints
+@app.route('/api/cache/clear', methods=['POST'])
+def cache_clear():
+    try:
+        res = hf_handler.clear_cache()
+        status = 200 if res.get('success') else 500
+        return jsonify(res), status
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/cache/status', methods=['GET'])
+def cache_status():
+    try:
+        return jsonify(hf_handler.cache_status())
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
