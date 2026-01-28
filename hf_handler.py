@@ -35,16 +35,24 @@ class HFHandler:
 
     def _save_cache_to_disk(self, key, value):
         try:
-            with open(self.cache_file, 'r', encoding='utf-8') as f:
-                content = json.load(f)
+            os.makedirs(os.path.dirname(os.path.abspath(self.cache_file)), exist_ok=True)
+            if os.path.exists(self.cache_file):
+                with open(self.cache_file, "r", encoding="utf-8") as f:
+                    content = json.load(f)
+            else:
+                content = {"cache": {}}
         except Exception:
             content = {"cache": {}}
+        
         if "cache" not in content:
             content["cache"] = {}
+            
         content["cache"][key] = {"ts": time.time(), "value": value}
-        with open(self.cache_file, 'w', encoding='utf-8') as f:
-            json.dump(content, f)
-
+        try:
+            with open(self.cache_file, "w", encoding="utf-8") as f:
+                json.dump(content, f, indent=4)
+        except Exception as e:
+            print(f"Error saving cache to disk: {e}")
     def clear_cache(self):
         """
         Clear both in-memory and on-disk caches.
@@ -91,12 +99,24 @@ class HFHandler:
                     full=False
                 )
             else:
-                results = list_datasets(
+                # FIX: Use self.api.list_datasets explicitly and ensure sort/direction logic is compatible.
+                # list_datasets uses 'direction' for ascending/descending, but 'sort' might need mapping.
+                # Default sort for datasets is often 'lastModified' or 'downloads'.
+                
+                # The direction parameter in list_models/list_datasets seems to be 1 for ascending, -1 for descending.
+                # For datasets, we use the API directly to ensure consistency.
+                
+                sort_by = sort
+                if sort == "downloads":
+                    sort_by = "downloads"
+                elif sort == "lastModified":
+                    sort_by = "lastModified"
+
+                results = self.api.list_datasets(
                     search=query,
-                    sort=sort,
+                    sort=sort_by,
                     direction=direction,
-                    limit=limit,
-                    full=False
+                    limit=limit
                 )
             
             data = []
@@ -104,10 +124,9 @@ class HFHandler:
                 # Handle different object structures
                 item = {
                     "id": r.id,
-                    "likes": getattr(r, 'likes', 0),
-                    "downloads": getattr(r, 'downloads', 0),
                     "tags": getattr(r, 'tags', []),
-                    "author": getattr(r, 'author', None),
+                    "author": r.id.split('/')[0] if '/' in r.id else r.id,
+                    "downloads": r.cardData.get('downloads', 0) if hasattr(r, 'cardData') and r.cardData else 0,
                     "lastModified": r.lastModified.isoformat() if hasattr(r, 'lastModified') and r.lastModified else None
                 }
                 data.append(item)
@@ -160,9 +179,9 @@ class HFHandler:
         # No usable cache, perform real scan
         try:
             tree_iter = self.api.list_repo_tree(
+                recursive=True,
                 repo_id=repo_id,
                 repo_type=repo_type,
-                recursive=True,
                 token=actual_token
             )
             all_files = []
@@ -241,12 +260,12 @@ class HFHandler:
 
     def estimate_total_size(self, repo_id, files, repo_type="model", token=None):
         """Estimate total size for a given list of file names by inspecting repo tree."""
-        actual_token = token if token and str(token).strip() else None
+        actual_token = token if token and token.strip() else None
         try:
             tree_iter = self.api.list_repo_tree(
+                recursive=True,
                 repo_id=repo_id,
                 repo_type=repo_type,
-                recursive=True,
                 token=actual_token
             )
             requested = set([f if isinstance(f, str) else str(f) for f in files])
@@ -276,8 +295,13 @@ class HFHandler:
         try:
             actual_token = token if token and token.strip() else None
             local_dir = os.path.abspath(local_dir)
+            # Create full path and ensure we have write permissions
             if not os.path.exists(local_dir):
-                os.makedirs(local_dir, exist_ok=True)
+                try:
+                    os.makedirs(local_dir, exist_ok=True)
+                except Exception as e:
+                    yield json.dumps({"type": "error", "message": f"Failed to create directory {local_dir}: {str(e)}"}) + "\n"
+                    return
             
             total_files = len(files)
             

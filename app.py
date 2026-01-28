@@ -581,8 +581,14 @@ def clean_dataset():
         cleaned_rows = len(df)
         
         output_path = file_path.replace(f".{ext}", f"_cleaned.{ext}")
-        if ext == 'csv': df.to_csv(output_path, index=False)
-        else: df.to_json(output_path, orient='records', indent=2)
+        # Ensure target directory exists for the cleaned file
+        os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+        
+        try:
+            if ext == 'csv': df.to_csv(output_path, index=False)
+            else: df.to_json(output_path, orient='records', indent=2)
+        except Exception as save_err:
+            return jsonify({"error": f"Failed to write cleaned file to disk: {str(save_err)}"}), 500
 
         return jsonify({
             "success": True, 
