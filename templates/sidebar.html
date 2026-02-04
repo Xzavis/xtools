@@ -83,6 +83,11 @@
 
     <!-- Sidebar Footer -->
     <div style="padding: 1rem; border-top: 1px solid hsl(var(--border));">
+        <a href="/settings" class="nav-link {% if active_page == 'settings' %}active{% endif %}" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; border-radius: var(--radius-md); font-size: 0.875rem; font-weight: 500; color: hsl(var(--muted-foreground)); text-decoration: none; transition: all 0.2s ease; margin-bottom: 0.75rem;">
+            <i data-lucide="settings" style="width: 16px; height: 16px;"></i>
+            Settings
+            <span id="tokenStatusIndicator" style="margin-left: auto; width: 8px; height: 8px; background: hsl(var(--destructive)); border-radius: 50%;" title="HF Token not configured"></span>
+        </a>
         <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: hsl(var(--muted)); border-radius: var(--radius-md);">
             <div style="width: 8px; height: 8px; background: hsl(var(--success)); border-radius: 50%;"></div>
             <span style="font-size: 0.875rem; color: hsl(var(--muted-foreground));">System Online</span>
@@ -134,4 +139,21 @@
             overlay.style.display = 'block';
         }
     }
+    
+    // Check token status on page load
+    (async function checkTokenStatus() {
+        try {
+            const response = await fetch('/api/settings/token');
+            const result = await response.json();
+            if(result.success && result.token) {
+                const indicator = document.getElementById('tokenStatusIndicator');
+                if(indicator) {
+                    indicator.style.background = 'hsl(var(--success))';
+                    indicator.title = 'HF Token configured';
+                }
+            }
+        } catch(e) {
+            // Silently fail
+        }
+    })();
 </script>

@@ -98,41 +98,87 @@ class HFHandler:
                     limit=limit,
                     full=False
                 )
+                
+                data = []
+                for r in results:
+                    # Handle lastModified - could be string or datetime
+                    last_modified = None
+                    if hasattr(r, 'lastModified') and r.lastModified:
+                        if hasattr(r.lastModified, 'isoformat'):
+                            last_modified = r.lastModified.isoformat()
+                        else:
+                            last_modified = str(r.lastModified)
+                    
+                    # Handle different object structures for models
+                    item = {
+                        "id": r.id,
+                        "tags": getattr(r, 'tags', []),
+                        "author": r.id.split('/')[0] if '/' in r.id else r.id,
+                        "downloads": getattr(r, 'downloads', 0) or 0,
+                        "lastModified": last_modified,
+                        "likes": getattr(r, 'likes', 0) or 0
+                    }
+                    data.append(item)
+                    
             else:
-                # FIX: Use self.api.list_datasets explicitly and ensure sort/direction logic is compatible.
-                # list_datasets uses 'direction' for ascending/descending, but 'sort' might need mapping.
-                # Default sort for datasets is often 'lastModified' or 'downloads'.
+                # Dataset search - list_datasets API may have different behavior
+                try:
+                    results = self.api.list_datasets(
+                        search=query,
+                        limit=limit
+                    )
+                except Exception as e:
+                    # Fallback: try without sort parameter
+                    results = list_datasets(
+                        search=query,
+                        limit=limit
+                    )
                 
-                # The direction parameter in list_models/list_datasets seems to be 1 for ascending, -1 for descending.
-                # For datasets, we use the API directly to ensure consistency.
+                data = []
+                for r in results:
+                    # Robust extraction of dataset metadata
+                    downloads = 0
+                    likes = 0
+                    
+                    # Try multiple ways to get downloads
+                    if hasattr(r, 'downloads'):
+                        downloads = r.downloads or 0
+                    elif hasattr(r, 'cardData') and r.cardData:
+                        if isinstance(r.cardData, dict):
+                            downloads = r.cardData.get('downloads', 0) or 0
+                    
+                    # Try to get likes
+                    if hasattr(r, 'likes'):
+                        likes = r.likes or 0
+                    
+                    # Handle lastModified - could be string or datetime
+                    last_modified = None
+                    if hasattr(r, 'lastModified') and r.lastModified:
+                        if hasattr(r.lastModified, 'isoformat'):
+                            last_modified = r.lastModified.isoformat()
+                        else:
+                            last_modified = str(r.lastModified)
+                    
+                    item = {
+                        "id": r.id,
+                        "tags": getattr(r, 'tags', []),
+                        "author": r.id.split('/')[0] if '/' in r.id else r.id,
+                        "downloads": downloads,
+                        "lastModified": last_modified,
+                        "likes": likes
+                    }
+                    data.append(item)
                 
-                sort_by = sort
+                # Sort results manually since API sorting may be inconsistent
                 if sort == "downloads":
-                    sort_by = "downloads"
+                    data.sort(key=lambda x: x["downloads"], reverse=(direction == -1))
                 elif sort == "lastModified":
-                    sort_by = "lastModified"
-
-                results = self.api.list_datasets(
-                    search=query,
-                    sort=sort_by,
-                    direction=direction,
-                    limit=limit
-                )
+                    data.sort(key=lambda x: x["lastModified"] or "", reverse=(direction == -1))
             
-            data = []
-            for r in results:
-                # Handle different object structures
-                item = {
-                    "id": r.id,
-                    "tags": getattr(r, 'tags', []),
-                    "author": r.id.split('/')[0] if '/' in r.id else r.id,
-                    "downloads": r.cardData.get('downloads', 0) if hasattr(r, 'cardData') and r.cardData else 0,
-                    "lastModified": r.lastModified.isoformat() if hasattr(r, 'lastModified') and r.lastModified else None
-                }
-                data.append(item)
             return {"success": True, "data": data}
         except Exception as e:
-            return {"success": False, "error": str(e)}
+            import traceback
+            return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
 
     def scan_repo(self, repo_id, token=None, repo_type="model", options=None):
         """

@@ -1,18 +1,6 @@
-# Python
+.xtools_cache.json
+.xtools_settings.json
+gh.deb
 __pycache__/
-*.py[cod]
-*$py.class
-.venv/
-env/
-venv/
-ENV/
-
-# Project Specific
-downloads/
-pastes/
-*.log
+*.pyc
 .DS_Store
-
-# IDE
-.vscode/
-.idea/

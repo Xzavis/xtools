@@ -1233,6 +1233,82 @@ def prep_validate():
         return jsonify({"error": str(e)}), 500
 
 
+# Settings management endpoints
+SETTINGS_FILE = os.path.join(os.getcwd(), '.xtools_settings.json')
+
+def load_settings():
+    """Load settings from JSON file"""
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+def save_settings(settings):
+    """Save settings to JSON file"""
+    try:
+        with open(SETTINGS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(settings, f, indent=2)
+        return True
+    except Exception as e:
+        print(f"Error saving settings: {e}")
+        return False
+
+@app.route('/settings')
+def settings_page():
+    return render_template('settings.html', active_page='settings')
+
+@app.route('/api/settings', methods=['GET'])
+def get_settings():
+    """Get all settings"""
+    try:
+        settings = load_settings()
+        # Mask sensitive data for display
+        display_settings = settings.copy()
+        if 'hf_token' in display_settings and display_settings['hf_token']:
+            token = display_settings['hf_token']
+            display_settings['hf_token'] = token[:4] + '*' * (len(token) - 8) + token[-4:] if len(token) > 8 else '********'
+        return jsonify({"success": True, "settings": display_settings})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/settings', methods=['POST'])
+def save_settings_api():
+    """Save settings"""
+    try:
+        data = request.json
+        current_settings = load_settings()
+        
+        # Update settings
+        if 'hf_token' in data:
+            # Only update if not masked (user entered new token)
+            if not data['hf_token'].startswith('*'):
+                current_settings['hf_token'] = data['hf_token']
+        
+        # Save other settings
+        for key, value in data.items():
+            if key != 'hf_token' or not (isinstance(value, str) and '*' in value):
+                current_settings[key] = value
+        
+        if save_settings(current_settings):
+            return jsonify({"success": True, "message": "Settings saved successfully"})
+        else:
+            return jsonify({"success": False, "error": "Failed to save settings"}), 500
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/settings/token', methods=['GET'])
+def get_token():
+    """Get HF token (for internal use)"""
+    try:
+        settings = load_settings()
+        token = settings.get('hf_token', '')
+        return jsonify({"success": True, "token": token})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 # Cache management endpoints
 @app.route('/api/cache/clear', methods=['POST'])
 def cache_clear():
