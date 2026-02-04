@@ -1,11 +1,11 @@
 # XTools 🚀
 
-> **AI-Powered Developer Toolkit** with Dark Neon Cyberpunk UI
+> **AI-Powered Developer Toolkit** with Modern shadcn/ui Design
 
-[![Version](https://img.shields.io/badge/version-2.0-CB3CFF?style=flat-square)](https://github.com/yourusername/xtools)
-[![Python](https://img.shields.io/badge/python-3.8+-0B1739?style=flat-square&logo=python)](https://python.org)
+[![Version](https://img.shields.io/badge/version-4.0-18181b?style=flat-square)](https://github.com/yourusername/xtools)
+[![Python](https://img.shields.io/badge/python-3.8+-2563eb?style=flat-square&logo=python)](https://python.org)
 [![Flask](https://img.shields.io/badge/flask-2.0+-000000?style=flat-square&logo=flask)](https://flask.palletsprojects.com)
-[![License](https://img.shields.io/badge/license-MIT-21C3FC?style=flat-square)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-16a34a?style=flat-square)](LICENSE)
 
 ![XTools Screenshot](static/screenshot.png)
 
@@ -17,19 +17,21 @@
 - **🧠 Model Hub** - Download models from Hugging Face with resume support
 - **🔍 Model Inspector** - Analyze model architecture and parameters
 - **🧹 Data Sanitizer** - Clean and validate datasets
-- **📊 Data Preparation** - Process JSONL, split/merge datasets
+- **📊 Data Preparation** - Process JSONL, split/merge/tokenize datasets
 - **📚 RAG Architect** - Build retrieval-augmented generation pipelines
-- **💾 VRAM Calculator** - Estimate GPU memory requirements
+- **💾 VRAM Calculator** - Estimate GPU memory requirements for LLMs
 
 ### 🛠️ Developer Utilities
-- **📝 Snippet Lab** - Markdown-powered code snippet manager with dark editor
-- **🔄 Converter** - Format conversion tools (JSON ↔ CSV ↔ YAML)
+- **📝 Snippet Lab** - Code snippet manager with syntax highlighting editor
+- **🔄 Converter** - Format conversion tools (JSON ↔ CSV ↔ YAML ↔ TOML)
+- **📁 File Operations** - File splitting, merging, and validation
 
 ### 🎨 Design Features
-- **Dark Neon Theme** - Cyberpunk-inspired UI with pink/magenta accents
-- **Animated Interface** - Smooth transitions and micro-interactions
+- **Modern Light Theme** - Clean shadcn/ui inspired design
+- **HSL Color System** - Flexible CSS custom properties
 - **Responsive Design** - Works on desktop and mobile
 - **Accessibility** - High contrast, keyboard navigation support
+- **Lucide Icons** - Consistent icon system throughout
 
 ---
 
@@ -39,7 +41,6 @@
 
 ```bash
 Python 3.8+
-Node.js (optional, for asset building)
 ```
 
 ### Installation
@@ -73,32 +74,30 @@ Open your browser and navigate to: `http://localhost:5000`
 
 ## 🎨 Design System
 
-XTools uses a custom **Dark Neon** design system with carefully crafted colors and animations.
+XTools uses a custom **shadcn/ui-inspired** design system with HSL color variables.
 
-### Color Palette
+### Color Palette (HSL)
 
-```
-Primary:    #CB3CFF (Pink/Magenta)
-Secondary:  #8951FF (Purple)
-Accent:     #21C3FC (Cyan)
-Background: #081028 (Deep Blue-Black)
-Surface:    #0A1330 (Elevated Dark)
-Text:       #FFFFFF / #AEB9E1
+```css
+--background: 0 0% 100%      /* White */
+--foreground: 222.2 84% 4.8% /* Slate 900 */
+--primary: 222.2 47.4% 11.2% /* Slate 900 */
+--secondary: 210 40% 96.1%   /* Slate 100 */
+--muted: 210 40% 96.1%       /* Slate 100 */
+--border: 214.3 31.8% 91.4%  /* Slate 200 */
 ```
 
 ### Documentation
 
-- **[STYLE_GUIDE.md](STYLE_GUIDE.md)** - Quick reference for using styles
+- **[STYLE_GUIDE.md](STYLE_GUIDE.md)** - Coding style and conventions
 - **[DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)** - Comprehensive design documentation
 
 ### CSS Structure
 
 ```
 static/
-├── css/
-│   ├── design-system.css    # Core tokens & utilities
-│   └── animations.css       # Animation library
-└── style.css                # Application styles
+└── css/
+    └── shadcn-theme.css    # All theme variables & components
 ```
 
 ---
@@ -111,28 +110,26 @@ xtools/
 ├── hf_handler.py            # HuggingFace integration
 ├── requirements.txt         # Python dependencies
 ├── README.md               # This file
-├── STYLE_GUIDE.md          # Style documentation
+├── STYLE_GUIDE.md          # Coding style guide
 ├── DESIGN_SYSTEM.md        # Design system docs
 ├── LICENSE                 # MIT License
 │
 ├── static/                 # Static assets
-│   ├── css/
-│   │   ├── design-system.css
-│   │   └── animations.css
-│   ├── style.css
-│   └── js/                 # JavaScript files
+│   └── css/
+│       └── shadcn-theme.css   # Theme & components
 │
 ├── templates/              # Jinja2 templates
 │   ├── index.html         # Dashboard
 │   ├── sidebar.html       # Navigation sidebar
-│   ├── pastebin.html      # Snippet Lab
+│   ├── pastebin.html      # Snippet Lab (CodeMirror)
 │   ├── view_paste.html    # Snippet viewer
 │   ├── hf_downloader.html # Model downloader
-│   ├── intelligence.html  # Model inspector
-│   ├── data_preparation.html
-│   ├── converter.html
-│   ├── file_manager.html
-│   └── ...
+│   ├── intelligence.html  # Model inspector & sanitizer
+│   ├── data_preparation.html  # Data processing pipeline
+│   ├── compute.html       # VRAM Calculator
+│   ├── rag.html           # RAG Architect
+│   ├── converter.html     # Format converter
+│   └── preview_jsonl.html # JSONL previewer
 │
 └── pastes/                # Snippet storage (auto-created)
 ```
@@ -157,12 +154,12 @@ export PASTE_STORAGE_PATH="./pastes"
 
 ### Customization
 
-Edit `static/css/design-system.css` to customize the color palette:
+Edit `static/css/shadcn-theme.css` to customize the theme:
 
 ```css
 :root {
-    --pink-400: #CB3CFF;        /* Change primary color */
-    --neutral-800: #081028;     /* Change background */
+    --primary: 222.2 47.4% 11.2%;    /* Change primary color */
+    --radius: 0.5rem;                 /* Change border radius */
     /* ... more variables ... */
 }
 ```
@@ -172,13 +169,16 @@ Edit `static/css/design-system.css` to customize the color palette:
 ## 🖼️ Screenshots
 
 ### Dashboard
-![Dashboard](static/screenshots/dashboard.png)
+Clean dashboard with tool cards and quick stats.
 
-### Snippet Lab (Dark Editor)
-![Snippet Lab](static/screenshots/snippet.png)
+### Snippet Lab
+Full-featured CodeMirror editor with syntax highlighting, templates, and auto-save.
 
 ### Model Hub
-![Model Hub](static/screenshots/modelhub.png)
+Download and manage Hugging Face models with progress tracking.
+
+### VRAM Calculator
+Calculate GPU memory requirements for LLM inference.
 
 ---
 
@@ -206,10 +206,19 @@ def new_tool():
 2. Create template in `templates/new_tool.html`:
 
 ```html
-{% extends 'base.html' %}
-{% block content %}
-    <!-- Your tool UI here -->
-{% endblock %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Tool - XTools</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/shadcn-theme.css') }}">
+</head>
+<body>
+    {% include 'sidebar.html' %}
+    <div class="main-content">
+        <!-- Your tool UI here -->
+    </div>
+</body>
+</html>
 ```
 
 3. Add navigation link in `templates/sidebar.html`
@@ -233,6 +242,14 @@ def new_tool():
 | POST | `/split` | Split files |
 | POST | `/merge` | Merge files |
 | POST | `/convert` | Format conversion |
+
+### Data Processing
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/clean_jsonl` | Clean JSONL data |
+| POST | `/tokenize_jsonl` | Tokenize dataset |
+| POST | `/validate_dataset` | Validate dataset |
 
 ### HuggingFace
 
@@ -277,17 +294,15 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - **Flask** - Web framework
-- **Bootstrap 5** - Base components
-- **Font Awesome** - Icons
-- **EasyMDE** - Markdown editor
-- **Highlight.js** - Syntax highlighting
+- **Bootstrap 5** - Grid system (optional)
+- **Lucide Icons** - Beautiful icon system
+- **CodeMirror 5** - Syntax highlighting editor
+- **Prism.js** - Code display highlighting
 
 ---
 
 ## 📞 Support
 
-- 📧 Email: support@xtools.dev
-- 💬 Discord: [Join our server](https://discord.gg/xtools)
 - 🐛 Issues: [GitHub Issues](https://github.com/yourusername/xtools/issues)
 
 ---
