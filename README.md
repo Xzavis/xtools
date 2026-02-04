@@ -24,7 +24,6 @@
 ### 🛠️ Developer Utilities
 - **📝 Snippet Lab** - Markdown-powered code snippet manager with dark editor
 - **🔄 Converter** - Format conversion tools (JSON ↔ CSV ↔ YAML)
-- **📁 File Manager** - Web-based file browser
 
 ### 🎨 Design Features
 - **Dark Neon Theme** - Cyberpunk-inspired UI with pink/magenta accents

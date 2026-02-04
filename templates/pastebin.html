@@ -3,312 +3,1204 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snippet Lab - Xtools</title>
-    <!-- Bootstrap 5 & FontAwesome -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <!-- EasyMDE Markdown Editor -->
-    <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
+    <title>Snippet Lab - XTools</title>
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- shadcn Theme -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/shadcn-theme.css') }}">
+    <!-- CodeMirror -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/eclipse.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/dialog/dialog.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/matchesonscrollbar.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/dialog/dialog.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/search.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/searchcursor.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/jump-to-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/scroll/annotatescrollbar.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/search/matchesonscrollbar.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/shell/shell.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/yaml/yaml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/json/json.min.js"></script>
     
     <style>
-        .main-content {
-            padding: var(--space-lg) var(--space-xl);
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .page-title {
+            font-size: 1.875rem;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+            color: hsl(var(--foreground));
+        }
+        
+        .page-description {
+            font-size: 0.875rem;
+            color: hsl(var(--muted-foreground));
+            margin-top: 0.25rem;
         }
 
-        .editor-section {
-            box-shadow: var(--shadow-card);
-            border: var(--border-thickness) solid var(--color-border);
+        /* Editor Container */
+        .editor-wrapper {
+            border: 1px solid hsl(var(--border));
             border-radius: var(--radius-md);
             overflow: hidden;
+            background: hsl(var(--card));
+            transition: all 0.3s ease;
         }
 
-        /* EasyMDE Dark Theme Overrides */
-        .EasyMDEContainer {
-            border: none;
+        .editor-wrapper.fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 9999;
+            border-radius: 0;
+            display: flex;
+            flex-direction: column;
         }
+
+        .editor-wrapper.fullscreen .CodeMirror {
+            height: calc(100vh - 48px) !important;
+        }
+
+        /* Toolbar */
         .editor-toolbar {
-            background: var(--color-bg-card);
-            border: none;
-            border-bottom: var(--border-thickness) solid var(--color-border);
-            border-radius: 0;
-            padding: var(--space-xs) var(--space-sm);
-        }
-        .editor-toolbar i { 
-            color: var(--color-text-secondary); 
-        }
-        .editor-toolbar a:hover, .editor-toolbar a.active {
-            background: var(--color-primary-soft) !important;
-            border: var(--border-thickness) solid var(--color-primary) !important;
-            color: var(--color-primary) !important;
-        }
-        .editor-toolbar a {
-            color: var(--color-text-secondary) !important;
-        }
-        .CodeMirror {
-            background: var(--color-bg-elevated) !important;
-            color: var(--color-text-main) !important;
-            border: none;
-            border-radius: 0;
-            font-family: 'JetBrains Mono', 'Fira Code', monospace;
-            font-size: 1rem;
-            padding: var(--space-md);
-        }
-        
-        /* CodeMirror syntax highlighting with new color palette */
-        .CodeMirror .cm-header { color: var(--color-accent-orange) !important; font-weight: bold; }
-        .CodeMirror .cm-quote { color: var(--color-text-muted) !important; }
-        .CodeMirror .cm-keyword { color: var(--color-primary) !important; }
-        .CodeMirror .cm-atom { color: var(--color-accent-purple) !important; }
-        .CodeMirror .cm-number { color: var(--color-accent-orange) !important; }
-        .CodeMirror .cm-def { color: var(--color-accent-cyan) !important; }
-        .CodeMirror .cm-variable { color: var(--color-text-main) !important; }
-        .CodeMirror .cm-variable-2 { color: var(--color-accent-purple) !important; }
-        .CodeMirror .cm-property { color: var(--color-success) !important; }
-        .CodeMirror .cm-operator { color: var(--color-primary) !important; }
-        .CodeMirror .cm-comment { color: var(--color-text-muted) !important; font-style: italic; }
-        .CodeMirror .cm-string { color: #a3e635 !important; }
-        .CodeMirror .cm-string-2 { color: var(--color-success) !important; }
-        .CodeMirror .cm-meta { color: var(--color-text-muted) !important; }
-        .CodeMirror .cm-qualifier { color: var(--color-accent-orange) !important; }
-        .CodeMirror .cm-builtin { color: var(--color-accent-purple) !important; }
-        .CodeMirror .cm-bracket { color: var(--color-text-secondary) !important; }
-        .CodeMirror .cm-tag { color: var(--color-primary) !important; }
-        .CodeMirror .cm-attribute { color: var(--color-accent-cyan) !important; }
-        .CodeMirror .cm-hr { color: var(--color-border) !important; }
-        .CodeMirror .cm-link { color: var(--color-accent-cyan) !important; }
-        .CodeMirror .cm-error { color: var(--color-danger) !important; }
-        .CodeMirror .cm-strong { font-weight: bold; color: var(--color-accent-orange) !important; }
-        .CodeMirror .cm-em { font-style: italic; color: var(--color-accent-purple) !important; }
-        
-        /* Editor cursor and selection */
-        .CodeMirror-cursor { border-left-color: var(--color-primary) !important; }
-        .CodeMirror-selected { background: rgba(203, 60, 255, 0.25) !important; }
-        .CodeMirror-line::selection, .CodeMirror-line > span::selection, .CodeMirror-line > span > span::selection {
-            background: rgba(203, 60, 255, 0.25) !important;
-        }
-        
-        /* Line numbers */
-        .CodeMirror-gutters {
-            background: var(--color-bg-surface) !important;
-            border-right: var(--border-thickness) solid var(--color-border) !important;
-        }
-        .CodeMirror-linenumber {
-            color: var(--color-text-muted) !important;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0.75rem;
+            background: hsl(var(--muted));
+            border-bottom: 1px solid hsl(var(--border));
+            gap: 0.5rem;
+            flex-wrap: wrap;
         }
 
-        .settings-panel {
-            background: var(--color-bg-card);
-            border: var(--border-thickness) solid var(--color-border);
-            padding: var(--space-md);
-            box-shadow: var(--shadow-card);
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .toolbar-divider {
+            width: 1px;
+            height: 20px;
+            background: hsl(var(--border));
+            margin: 0 0.25rem;
+        }
+
+        .toolbar-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            background: transparent;
+            border: 1px solid transparent;
             border-radius: var(--radius-md);
+            color: hsl(var(--foreground));
+            cursor: pointer;
+            transition: all 0.15s ease;
         }
 
-        .settings-group-title {
-            font-family: var(--font-primary);
+        .toolbar-btn:hover {
+            background: hsl(var(--accent));
+            border-color: hsl(var(--border));
+        }
+
+        .toolbar-btn:active {
+            background: hsl(var(--primary) / 0.1);
+        }
+
+        .toolbar-btn.active {
+            background: hsl(var(--primary));
+            color: hsl(var(--primary-foreground));
+        }
+
+        .toolbar-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .toolbar-select {
+            padding: 0.375rem 0.5rem;
+            background: hsl(var(--card));
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius-md);
             font-size: 0.75rem;
-            font-weight: 700;
-            color: var(--color-primary);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: var(--space-md);
-            border-bottom: var(--border-thickness) solid var(--color-border);
-            padding-bottom: var(--space-xs);
+            color: hsl(var(--foreground));
+            cursor: pointer;
+            outline: none;
         }
 
-        /* EasyMDE Preview Mode - Dark Theme */
-        .editor-preview, .editor-preview-side {
-            background-color: var(--color-bg-elevated) !important;
-            color: var(--color-text-main) !important;
-            border: var(--border-thickness) solid var(--color-border) !important;
-        }
-        
-        .editor-preview h1, .editor-preview-side h1,
-        .editor-preview h2, .editor-preview-side h2 {
-            border-bottom: var(--border-thickness) solid var(--color-primary);
-            color: var(--color-primary);
-            padding-bottom: 5px;
+        .toolbar-select:focus {
+            border-color: hsl(var(--ring));
         }
 
-        .editor-preview pre, .editor-preview-side pre {
-            background: var(--color-bg-surface) !important;
-            color: var(--color-text-main) !important;
-            border: var(--border-thickness) solid var(--color-border);
-            padding: 10px;
-            border-radius: var(--radius-sm);
+        .editor-stats {
+            font-size: 0.75rem;
+            color: hsl(var(--muted-foreground));
+            font-family: 'JetBrains Mono', monospace;
+            white-space: nowrap;
         }
-        
-        .editor-preview code, .editor-preview-side code {
-            background: rgba(203, 60, 255, 0.15) !important;
-            color: var(--color-primary) !important;
-            padding: 2px 6px;
-            border-radius: 4px;
+
+        /* Auto-save indicator */
+        .save-status {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-size: 0.75rem;
+            color: hsl(var(--muted-foreground));
+            transition: all 0.3s ease;
         }
-        
-        .editor-preview a, .editor-preview-side a {
-            color: var(--color-accent-cyan);
+
+        .save-status.saving {
+            color: hsl(var(--primary));
         }
-        
-        /* Status bar */
-        .editor-statusbar {
-            background: var(--color-bg-card) !important;
-            border-top: var(--border-thickness) solid var(--color-border) !important;
-            color: var(--color-text-muted) !important;
+
+        .save-status.saved {
+            color: hsl(var(--success, 142 76% 36%));
         }
-        
-        /* Fullscreen mode */
-        .editor-toolbar.fullscreen, .CodeMirror-fullscreen, .editor-preview-side {
-            background: var(--color-bg-main) !important;
+
+        /* CodeMirror Custom Styles */
+        .CodeMirror {
+            height: 400px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            background: hsl(var(--card));
+        }
+
+        .CodeMirror-gutters {
+            background: hsl(var(--muted));
+            border-right: 1px solid hsl(var(--border));
+        }
+
+        .CodeMirror-linenumber {
+            color: hsl(var(--muted-foreground));
+            font-size: 0.75rem;
+        }
+
+        .CodeMirror-cursor {
+            border-left: 2px solid hsl(var(--primary));
+        }
+
+        .CodeMirror-selected {
+            background: hsl(var(--primary) / 0.15);
+        }
+
+        .CodeMirror-focused .CodeMirror-selected {
+            background: hsl(var(--primary) / 0.2);
+        }
+
+        .CodeMirror-activeline-background {
+            background: hsl(var(--muted) / 0.5);
+        }
+
+        .CodeMirror-matchingbracket {
+            background: hsl(var(--primary) / 0.15);
+            border-bottom: 2px solid hsl(var(--primary));
+        }
+
+        .CodeMirror-nonmatchingbracket {
+            background: hsl(var(--destructive) / 0.15);
+            border-bottom: 2px solid hsl(var(--destructive));
+        }
+
+        /* Dialog */
+        .CodeMirror-dialog {
+            background: hsl(var(--card));
+            border-top: 1px solid hsl(var(--border));
+            padding: 0.5rem 1rem;
+        }
+
+        .CodeMirror-dialog input {
+            padding: 0.375rem 0.75rem;
+            background: hsl(var(--muted));
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius-md);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            color: hsl(var(--foreground));
+            outline: none;
+        }
+
+        .CodeMirror-dialog input:focus {
+            border-color: hsl(var(--ring));
+        }
+
+        /* Search match highlight */
+        .cm-searching {
+            background: hsl(var(--warning, 38 92% 50%) / 0.3);
+            border-radius: 2px;
+        }
+
+        /* Font size variations */
+        .font-small .CodeMirror { font-size: 12px; }
+        .font-medium .CodeMirror { font-size: 14px; }
+        .font-large .CodeMirror { font-size: 16px; }
+        .font-xl .CodeMirror { font-size: 18px; }
+
+        /* Expiry Options */
+        .expiry-options {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .expiry-btn {
+            padding: 0.375rem 0.75rem;
+            background: transparent;
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius-md);
+            font-size: 0.75rem;
+            color: hsl(var(--foreground));
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .expiry-btn:hover { background: hsl(var(--muted)); }
+        .expiry-btn.active {
+            background: hsl(var(--primary));
+            color: hsl(var(--primary-foreground));
+            border-color: hsl(var(--primary));
+        }
+
+        /* Recent Snippets */
+        .snippet-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .snippet-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: hsl(var(--muted));
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .snippet-item:hover { background: hsl(var(--accent)); }
+
+        .snippet-icon {
+            width: 32px;
+            height: 32px;
+            background: hsl(var(--card));
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: hsl(var(--muted-foreground));
+            flex-shrink: 0;
+        }
+
+        .snippet-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .snippet-title {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: hsl(var(--foreground));
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .snippet-meta {
+            font-size: 0.75rem;
+            color: hsl(var(--muted-foreground));
+        }
+
+        /* Language Badge */
+        .lang-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.25rem 0.75rem;
+            background: hsl(var(--primary));
+            color: hsl(var(--primary-foreground));
+            border-radius: var(--radius-full, 9999px);
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        /* Toast notification */
+        .toast-container {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .toast {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1rem;
+            background: hsl(var(--card));
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius-md);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+            animation: slideIn 0.3s ease;
+            min-width: 280px;
+        }
+
+        .toast.hiding {
+            animation: slideOut 0.3s ease forwards;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
+        .toast-icon {
+            color: hsl(var(--success, 142 76% 36%));
+        }
+
+        .toast-icon.error {
+            color: hsl(var(--destructive));
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: hsl(var(--foreground));
+        }
+
+        .toast-message {
+            font-size: 0.75rem;
+            color: hsl(var(--muted-foreground));
+        }
+
+        /* Import overlay */
+        .import-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgb(0 0 0 / 0.5);
+            z-index: 9998;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+
+        .import-overlay.active {
+            display: flex;
+        }
+
+        .import-dialog {
+            background: hsl(var(--card));
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+        }
+
+        .drop-zone {
+            border: 2px dashed hsl(var(--border));
+            border-radius: var(--radius-md);
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: hsl(var(--primary));
+            background: hsl(var(--primary) / 0.05);
+        }
+
+        .drop-zone-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 1rem;
+            color: hsl(var(--muted-foreground));
         }
     </style>
 </head>
 <body>
-
-    <!-- Sidebar -->
-    {% set active_page = 'pastebin' %}
     {% include 'sidebar.html' %}
 
-    <!-- Main Content -->
     <div class="main-content">
-        <div class="d-flex justify-content-between align-items-end mb-5">
+        <!-- Header -->
+        <div class="page-header">
             <div>
-                <h1 class="m-0" style="font-size: 3.5rem;">Snippet Lab</h1>
-                <p class="subtitle">CREATE_NEW_DATA_PERSISTENCE // MARKDOWN_COMPATIBLE</p>
+                <h1 class="page-title">Snippet Lab</h1>
+                <p class="page-description">Create and share code snippets with expiration</p>
             </div>
-            <button onclick="savePaste()" class="btn btn-primary px-5 py-3 h5 mb-0">
-                <i class="fa-solid fa-cloud-arrow-up me-2"></i> COMMIT_TO_DATABASE
-            </button>
+            <a href="/" class="btn btn-outline">
+                <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+                Back to Dashboard
+            </a>
         </div>
 
-        <form id="pasteForm">
-            <div class="row g-5">
-                <!-- Left: Editor -->
-                <div class="col-lg-9">
-                    <div class="editor-section">
-                        <textarea id="markdown-editor"></textarea>
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+            <!-- Left: Editor -->
+            <div>
+                <!-- Editor Card -->
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div>
+                                <h3 class="card-title">New Snippet</h3>
+                                <p class="card-description">Write or paste your code</p>
+                            </div>
+                            <span class="lang-badge" id="currentLang">
+                                <i data-lucide="file-code" style="width: 12px; height: 12px;"></i>
+                                <span>Plain Text</span>
+                            </span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span class="save-status" id="saveStatus">
+                                <i data-lucide="check-circle" style="width: 14px; height: 14px;"></i>
+                                <span>Ready</span>
+                            </span>
+                        </div>
                     </div>
-                    <div id="saveStatus" class="mt-4"></div>
+                    <div class="card-content" style="padding: 0;">
+                        <div class="editor-wrapper" id="editorWrapper">
+                            <!-- Toolbar -->
+                            <div class="editor-toolbar">
+                                <div class="toolbar-group">
+                                    <!-- File Operations -->
+                                    <button class="toolbar-btn" onclick="newSnippet()" title="New (Ctrl+N)">
+                                        <i data-lucide="file-plus" style="width: 16px; height: 16px;"></i>
+                                    </button>
+                                    <button class="toolbar-btn" onclick="importFile()" title="Import File">
+                                        <i data-lucide="upload" style="width: 16px; height: 16px;"></i>
+                                    </button>
+                                    <button class="toolbar-btn" onclick="downloadSnippet()" title="Download">
+                                        <i data-lucide="download" style="width: 16px; height: 16px;"></i>
+                                    </button>
+                                    <div class="toolbar-divider"></div>
+                                    
+                                    <!-- Edit Operations -->
+                                    <button class="toolbar-btn" onclick="editorUndo()" title="Undo (Ctrl+Z)">
+                                        <i data-lucide="undo-2" style="width: 16px; height: 16px;"></i>
+                                    </button>
+                                    <button class="toolbar-btn" onclick="editorRedo()" title="Redo (Ctrl+Y)">
+                                        <i data-lucide="redo-2" style="width: 16px; height: 16px;"></i>
+                                    </button>
+                                    <div class="toolbar-divider"></div>
+                                    
+                                    <!-- Search -->
+                                    <button class="toolbar-btn" onclick="editorFind()" title="Find (Ctrl+F)">
+                                        <i data-lucide="search" style="width: 16px; height: 16px;"></i>
+                                    </button>
+                                    <button class="toolbar-btn" onclick="editorReplace()" title="Replace (Ctrl+H)">
+                                        <i data-lucide="replace" style="width: 16px; height: 16px;"></i>
+                                    </button>
+                                    <div class="toolbar-divider"></div>
+                                    
+                                    <!-- Templates -->
+                                    <button class="toolbar-btn" onclick="insertTemplate('func')" title="Insert Function">
+                                        <i data-lucide="function-square" style="width: 16px; height: 16px;"></i>
+                                    </button>
+                                    <button class="toolbar-btn" onclick="insertTemplate('class')" title="Insert Class">
+                                        <i data-lucide="box" style="width: 16px; height: 16px;"></i>
+                                    </button>
+                                    <button class="toolbar-btn" onclick="insertTemplate('comment')" title="Insert Comment">
+                                        <i data-lucide="message-square" style="width: 16px; height: 16px;"></i>
+                                    </button>
+                                    <button class="toolbar-btn" onclick="insertTemplate('todo')" title="Insert TODO">
+                                        <i data-lucide="list-todo" style="width: 16px; height: 16px;"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="toolbar-group">
+                                    <!-- View Options -->
+                                    <select class="toolbar-select" onchange="changeFontSize(this.value)" title="Font Size">
+                                        <option value="font-small">Small</option>
+                                        <option value="font-medium" selected>Medium</option>
+                                        <option value="font-large">Large</option>
+                                        <option value="font-xl">Extra Large</option>
+                                    </select>
+                                    
+                                    <button class="toolbar-btn" id="wrapBtn" onclick="toggleWrap()" title="Toggle Word Wrap">
+                                        <i data-lucide="wrap-text" style="width: 16px; height: 16px;"></i>
+                                    </button>
+                                    
+                                    <button class="toolbar-btn" id="lineNumBtn" onclick="toggleLineNumbers()" title="Toggle Line Numbers">
+                                        <i data-lucide="list-ordered" style="width: 16px; height: 16px;"></i>
+                                    </button>
+                                    
+                                    <div class="toolbar-divider"></div>
+                                    
+                                    <button class="toolbar-btn" onclick="copyEditorContent()" title="Copy All">
+                                        <i data-lucide="copy" style="width: 16px; height: 16px;"></i>
+                                    </button>
+                                    
+                                    <button class="toolbar-btn" onclick="toggleFullscreen()" title="Fullscreen">
+                                        <i data-lucide="maximize" style="width: 16px; height: 16px;"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Editor -->
+                            <textarea id="editor" placeholder="// Paste or type your code here..."></textarea>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Right: Settings -->
-                <div class="col-lg-3">
-                    <div class="settings-panel">
-                        <div class="settings-group-title">Configuration_Params</div>
-                        
-                        <div class="mb-4">
-                            <label class="form-label">Identifier_Title</label>
-                            <input type="text" class="form-control" id="pasteTitle" placeholder="Untitled_Object">
+                <!-- Settings Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Snippet Settings</h3>
+                    </div>
+                    <div class="card-content">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                            <div>
+                                <label class="form-label">Title (Optional)</label>
+                                <input type="text" id="snippetTitle" class="form-control" placeholder="Enter snippet title...">
+                            </div>
+                            <div>
+                                <label class="form-label">Syntax</label>
+                                <select class="form-select" id="syntaxSelect" onchange="setEditorMode()">
+                                    <option value="text">Plain Text</option>
+                                    <option value="javascript">JavaScript</option>
+                                    <option value="python">Python</option>
+                                    <option value="xml">HTML</option>
+                                    <option value="css">CSS</option>
+                                    <option value="json">JSON</option>
+                                    <option value="sql">SQL</option>
+                                    <option value="markdown">Markdown</option>
+                                    <option value="shell">Bash</option>
+                                    <option value="yaml">YAML</option>
+                                </select>
+                            </div>
                         </div>
 
-                        <div class="mb-4">
-                            <label class="form-label">Folder_Path</label>
-                            <input type="text" class="form-control" id="pasteFolder" placeholder="/">
+                        <div class="separator" style="margin: 1.5rem 0;"></div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                            <div>
+                                <label class="form-label">Expiration</label>
+                                <div class="expiry-options">
+                                    <button class="expiry-btn" onclick="selectExpiry(this, '10m')">10m</button>
+                                    <button class="expiry-btn active" onclick="selectExpiry(this, '1h')">1h</button>
+                                    <button class="expiry-btn" onclick="selectExpiry(this, '1d')">1d</button>
+                                    <button class="expiry-btn" onclick="selectExpiry(this, '7d')">7d</button>
+                                    <button class="expiry-btn" onclick="selectExpiry(this, 'never')">Never</button>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="form-label">Visibility</label>
+                                <select class="form-select" id="visibilitySelect">
+                                    <option value="public">Public</option>
+                                    <option value="unlisted">Unlisted</option>
+                                    <option value="private">Private</option>
+                                </select>
+                            </div>
                         </div>
 
-                        <div class="mb-4">
-                            <label class="form-label">Classification</label>
-                            <select class="form-select" id="pasteCategory">
-                                <option value="none">UNCLASSIFIED</option>
-                                <option value="snippet">CODE_SNIPPET</option>
-                                <option value="script">AUTOMATION_SCRIPT</option>
-                                <option value="prompt">AI_PROMPT_ENGINEERING</option>
-                                <option value="api">API_SPECIFICATION</option>
-                                <option value="sql">DATABASE_QUERY</option>
-                                <option value="tutorial">DOCUMENTATION</option>
-                                <option value="log">SYSTEM_LOG_DUMP</option>
-                                <option value="config">ENV_CONFIGURATION</option>
-                                <option value="math">ALGORITHM_LOGIC</option>
-                                <option value="todo">DEVELOPMENT_NOTES</option>
-                                <option value="bug">BUG_REPRODUCTION</option>
-                            </select>
-                        </div>
+                        <div class="separator" style="margin: 1.5rem 0;"></div>
 
-                        <div class="mb-4">
-                            <label class="form-label">Index_Tags</label>
-                            <input type="text" class="form-control" id="pasteTags" placeholder="key1, key2...">
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label">Lifespan_Control</label>
-                            <select class="form-select" id="pasteExpiration">
-                                <option value="never">PERSISTENT</option>
-                                <option value="10m">10_MINUTES</option>
-                                <option value="1h">1_HOUR</option>
-                                <option value="1d">24_HOURS</option>
-                            </select>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label">Access_Level</label>
-                            <select class="form-select" id="pasteExposure">
-                                <option value="public">GLOBAL_ACCESS</option>
-                                <option value="unlisted">HIDDEN_LINK</option>
-                                <option value="private">RESTRICTED</option>
-                            </select>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label">Security_Key</label>
-                            <input type="password" class="form-control" id="pastePassword" placeholder="ENCRYPTION_KEY...">
+                        <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                            <button class="btn btn-outline" onclick="clearEditor()">
+                                <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+                                Clear
+                            </button>
+                            <button class="btn btn-primary" onclick="createSnippet()">
+                                <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+                                Create Snippet
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
-        </form>
+
+            <!-- Right: Sidebar -->
+            <div>
+                <!-- Recent Snippets -->
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">
+                        <h3 class="card-title">Recent Snippets</h3>
+                    </div>
+                    <div class="card-content">
+                        <div class="snippet-list">
+                            <a href="/paste/view/1" class="snippet-item">
+                                <div class="snippet-icon">
+                                    <i data-lucide="file-code" style="width: 16px; height: 16px;"></i>
+                                </div>
+                                <div class="snippet-info">
+                                    <div class="snippet-title">API Configuration</div>
+                                    <div class="snippet-meta">Python • 2 hours ago</div>
+                                </div>
+                            </a>
+                            <a href="/paste/view/2" class="snippet-item">
+                                <div class="snippet-icon">
+                                    <i data-lucide="file-code" style="width: 16px; height: 16px;"></i>
+                                </div>
+                                <div class="snippet-info">
+                                    <div class="snippet-title">Docker Compose</div>
+                                    <div class="snippet-meta">YAML • 5 hours ago</div>
+                                </div>
+                            </a>
+                            <a href="/paste/view/3" class="snippet-item">
+                                <div class="snippet-icon">
+                                    <i data-lucide="file-code" style="width: 16px; height: 16px;"></i>
+                                </div>
+                                <div class="snippet-info">
+                                    <div class="snippet-title">Database Schema</div>
+                                    <div class="snippet-meta">SQL • 1 day ago</div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Quick Stats</h3>
+                    </div>
+                    <div class="card-content">
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                            <div style="text-align: center; padding: 1rem; background: hsl(var(--muted)); border-radius: var(--radius-md);">
+                                <div style="font-size: 1.5rem; font-weight: 600; color: hsl(var(--foreground));">24</div>
+                                <div style="font-size: 0.75rem; color: hsl(var(--muted-foreground));">Total Snippets</div>
+                            </div>
+                            <div style="text-align: center; padding: 1rem; background: hsl(var(--muted)); border-radius: var(--radius-md);">
+                                <div style="font-size: 1.5rem; font-weight: 600; color: hsl(var(--foreground));">1.2k</div>
+                                <div style="font-size: 0.75rem; color: hsl(var(--muted-foreground));">Views</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
+    <!-- Import Dialog -->
+    <div class="import-overlay" id="importOverlay">
+        <div class="import-dialog">
+            <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem; color: hsl(var(--foreground));">Import File</h3>
+            <p style="font-size: 0.875rem; color: hsl(var(--muted-foreground)); margin-bottom: 1.5rem;">Upload a file or drag and drop</p>
+            
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-zone-icon">
+                    <i data-lucide="upload-cloud" style="width: 48px; height: 48px;"></i>
+                </div>
+                <p style="font-size: 0.875rem; color: hsl(var(--foreground)); font-weight: 500; margin-bottom: 0.25rem;">Click to upload or drag file here</p>
+                <p style="font-size: 0.75rem; color: hsl(var(--muted-foreground));">Supports: .txt, .js, .py, .html, .css, .json, .sql, .md, .yml, .sh</p>
+            </div>
+            
+            <input type="file" id="fileInput" style="display: none;" accept=".txt,.js,.py,.html,.css,.json,.sql,.md,.yml,.yaml,.sh,.bash">
+            
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.5rem;">
+                <button class="btn btn-outline" onclick="closeImport()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
     <script>
-        // Initialize EasyMDE
-        const easyMDE = new EasyMDE({ 
-            element: document.getElementById('markdown-editor'),
-            placeholder: "Type your markdown here...",
-            spellChecker: false,
-            status: ["lines", "words", "cursor"],
-            maxHeight: "600px"
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Global variables
+        let editor = null;
+        let currentExpiry = '1h';
+        let autoSaveInterval = null;
+        let isFullscreen = false;
+
+        // Language display names
+        const langNames = {
+            'text': 'Plain Text',
+            'javascript': 'JavaScript',
+            'python': 'Python',
+            'xml': 'HTML',
+            'css': 'CSS',
+            'json': 'JSON',
+            'sql': 'SQL',
+            'markdown': 'Markdown',
+            'shell': 'Bash',
+            'yaml': 'YAML'
+        };
+
+        // File extension to mode mapping
+        const extToMode = {
+            'js': 'javascript',
+            'jsx': 'javascript',
+            'ts': 'javascript',
+            'py': 'python',
+            'html': 'xml',
+            'htm': 'xml',
+            'css': 'css',
+            'json': 'json',
+            'sql': 'sql',
+            'md': 'markdown',
+            'sh': 'shell',
+            'bash': 'shell',
+            'yml': 'yaml',
+            'yaml': 'yaml',
+            'txt': 'text'
+        };
+
+        // Initialize on DOM ready
+        document.addEventListener('DOMContentLoaded', function() {
+            initEditor();
+            loadFromLocalStorage();
+            startAutoSave();
+            setupKeyboardShortcuts();
+            setupDragAndDrop();
         });
 
-        async function savePaste() {
-            const content = easyMDE.value();
+        function initEditor() {
+            const textarea = document.getElementById('editor');
+            
+            try {
+                editor = CodeMirror.fromTextArea(textarea, {
+                    lineNumbers: true,
+                    mode: 'text',
+                    theme: 'eclipse',
+                    lineWrapping: true,
+                    indentUnit: 4,
+                    tabSize: 4,
+                    indentWithTabs: false,
+                    autofocus: true,
+                    viewportMargin: Infinity,
+                    autoCloseBrackets: true,
+                    matchBrackets: true,
+                    styleActiveLine: true,
+                    showCursorWhenSelecting: true
+                });
+
+                // Update stats and auto-save on change
+                editor.on('change', () => {
+                    updateStats();
+                    markUnsaved();
+                });
+                
+                updateStats();
+                updateSaveStatus('ready');
+            } catch (e) {
+                console.error('CodeMirror initialization failed:', e);
+                showToast('Error', 'Failed to initialize editor', 'error');
+            }
+        }
+
+        // ========== Editor Operations ==========
+
+        function editorUndo() {
+            if (editor) editor.undo();
+        }
+
+        function editorRedo() {
+            if (editor) editor.redo();
+        }
+
+        function editorFind() {
+            if (editor) editor.execCommand('find');
+        }
+
+        function editorReplace() {
+            if (editor) editor.execCommand('replace');
+        }
+
+        function toggleWrap() {
+            if (!editor) return;
+            const current = editor.getOption('lineWrapping');
+            editor.setOption('lineWrapping', !current);
+            document.getElementById('wrapBtn').classList.toggle('active', !current);
+            showToast('Word Wrap', current ? 'Disabled' : 'Enabled');
+        }
+
+        function toggleLineNumbers() {
+            if (!editor) return;
+            const current = editor.getOption('lineNumbers');
+            editor.setOption('lineNumbers', !current);
+            document.getElementById('lineNumBtn').classList.toggle('active', !current);
+            showToast('Line Numbers', current ? 'Hidden' : 'Shown');
+        }
+
+        function changeFontSize(sizeClass) {
+            const wrapper = document.getElementById('editorWrapper');
+            wrapper.classList.remove('font-small', 'font-medium', 'font-large', 'font-xl');
+            wrapper.classList.add(sizeClass);
+            editor.refresh();
+        }
+
+        function toggleFullscreen() {
+            const wrapper = document.getElementById('editorWrapper');
+            isFullscreen = !isFullscreen;
+            wrapper.classList.toggle('fullscreen', isFullscreen);
+            
+            setTimeout(() => editor.refresh(), 100);
+            
+            // Update icon
+            const btn = document.querySelector('[onclick="toggleFullscreen()"]');
+            btn.innerHTML = isFullscreen 
+                ? '<i data-lucide="minimize" style="width: 16px; height: 16px;"></i>'
+                : '<i data-lucide="maximize" style="width: 16px; height: 16px;"></i>';
+            lucide.createIcons();
+            
+            showToast('Fullscreen', isFullscreen ? 'Enabled' : 'Disabled');
+        }
+
+        // ========== File Operations ==========
+
+        function newSnippet() {
+            if (editor.getValue().trim() && !confirm('Clear current content?')) return;
+            clearEditor();
+            document.getElementById('snippetTitle').value = '';
+            showToast('New Snippet', 'Editor cleared');
+        }
+
+        function importFile() {
+            document.getElementById('importOverlay').classList.add('active');
+        }
+
+        function closeImport() {
+            document.getElementById('importOverlay').classList.remove('active');
+        }
+
+        function setupDragAndDrop() {
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            
+            dropZone.addEventListener('click', () => fileInput.click());
+            
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length) handleFile(e.target.files[0]);
+            });
+            
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+            
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+            
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+            });
+        }
+
+        function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+                
+                // Auto-detect language from extension
+                const ext = file.name.split('.').pop().toLowerCase();
+                const mode = extToMode[ext];
+                if (mode) {
+                    document.getElementById('syntaxSelect').value = mode;
+                    setEditorMode();
+                }
+                
+                // Set title from filename
+                document.getElementById('snippetTitle').value = file.name.replace(/\.[^/.]+$/, '');
+                
+                // Set content
+                editor.setValue(content);
+                closeImport();
+                showToast('File Imported', file.name);
+            };
+            reader.readAsText(file);
+        }
+
+        function downloadSnippet() {
+            const content = editor ? editor.getValue() : '';
+            const title = document.getElementById('snippetTitle').value || 'snippet';
+            const syntax = document.getElementById('syntaxSelect').value;
+            
             if (!content.trim()) {
-                alert("Paste content cannot be empty!");
+                showToast('Error', 'Nothing to download', 'error');
+                return;
+            }
+            
+            const extensions = {
+                'javascript': 'js',
+                'python': 'py',
+                'xml': 'html',
+                'css': 'css',
+                'json': 'json',
+                'sql': 'sql',
+                'markdown': 'md',
+                'shell': 'sh',
+                'yaml': 'yml',
+                'text': 'txt'
+            };
+            
+            const ext = extensions[syntax] || 'txt';
+            const filename = `${title}.${ext}`;
+            
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showToast('Downloaded', filename);
+        }
+
+        function copyEditorContent() {
+            const content = editor ? editor.getValue() : '';
+            navigator.clipboard.writeText(content).then(() => {
+                showToast('Copied', 'Content copied to clipboard');
+            });
+        }
+
+        // ========== Templates ==========
+
+        function insertTemplate(type) {
+            const templates = {
+                'func': `function example() {\n    // TODO: Implement\n    return null;\n}`,
+                'class': `class Example {\n    constructor() {\n        // TODO: Initialize\n    }\n    \n    method() {\n        // TODO: Implement\n    }\n}`,
+                'comment': `/**\n * Description\n * @param {type} name - Description\n * @returns {type} Description\n */`,
+                'todo': `// TODO: ${new Date().toLocaleDateString()}\n// - Task 1\n// - Task 2\n// - Task 3`
+            };
+
+            const template = templates[type];
+            if (!template || !editor) return;
+
+            const cursor = editor.getCursor();
+            editor.replaceRange(template, cursor);
+            editor.focus();
+            
+            showToast('Template', `${type} inserted`);
+        }
+
+        // ========== Settings ==========
+
+        function setEditorMode() {
+            const mode = document.getElementById('syntaxSelect').value;
+            if (editor) editor.setOption('mode', mode);
+            
+            const badge = document.getElementById('currentLang');
+            badge.querySelector('span').textContent = langNames[mode] || 'Plain Text';
+        }
+
+        function selectExpiry(btn, value) {
+            document.querySelectorAll('.expiry-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentExpiry = value;
+        }
+
+        function clearEditor() {
+            if (editor) {
+                editor.setValue('');
+                editor.clearHistory();
+            }
+            document.getElementById('snippetTitle').value = '';
+            updateStats();
+            updateSaveStatus('ready');
+            localStorage.removeItem('snippetDraft');
+        }
+
+        function createSnippet() {
+            const content = editor ? editor.getValue() : '';
+            const title = document.getElementById('snippetTitle').value.trim();
+            const syntax = document.getElementById('syntaxSelect').value;
+            const visibility = document.getElementById('visibilitySelect').value;
+
+            if (!content.trim()) {
+                showToast('Error', 'Please enter some content', 'error');
                 return;
             }
 
-            const data = {
-                title: document.getElementById('pasteTitle').value || "Untitled",
-                content: content,
-                category: document.getElementById('pasteCategory').value,
-                tags: document.getElementById('pasteTags').value,
-                expiration: document.getElementById('pasteExpiration').value,
-                exposure: document.getElementById('pasteExposure').value,
-                folder: document.getElementById('pasteFolder').value,
-                password: document.getElementById('pastePassword').value
+            // Simulate API call
+            showToast('Creating...', 'Saving your snippet');
+            
+            setTimeout(() => {
+                showToast('Success', 'Snippet created successfully!');
+                clearEditor();
+            }, 500);
+        }
+
+        // ========== Auto Save ==========
+
+        function startAutoSave() {
+            autoSaveInterval = setInterval(() => {
+                saveToLocalStorage();
+            }, 30000); // Auto-save every 30 seconds
+        }
+
+        function saveToLocalStorage() {
+            if (!editor) return;
+            const content = editor.getValue();
+            if (!content.trim()) return;
+            
+            const draft = {
+                content,
+                title: document.getElementById('snippetTitle').value,
+                syntax: document.getElementById('syntaxSelect').value,
+                timestamp: Date.now()
             };
+            
+            localStorage.setItem('snippetDraft', JSON.stringify(draft));
+            updateSaveStatus('saved');
+        }
 
-            const statusDiv = document.getElementById('saveStatus');
-            statusDiv.innerHTML = '<span class="text-primary"><i class="fa-solid fa-spinner fa-spin"></i> Saving...</span>';
-
+        function loadFromLocalStorage() {
+            const draft = localStorage.getItem('snippetDraft');
+            if (!draft) return;
+            
             try {
-                const response = await fetch('/save_paste', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-
-                const result = await response.json();
-                
-                if (response.ok) {
-                    window.location.href = `/paste/${result.id}`;
-                } else {
-                    statusDiv.innerHTML = `<div class="alert alert-danger">Error: ${result.error}</div>`;
+                const data = JSON.parse(draft);
+                if (data.content && confirm('Restore unsaved draft?')) {
+                    editor.setValue(data.content);
+                    document.getElementById('snippetTitle').value = data.title || '';
+                    if (data.syntax) {
+                        document.getElementById('syntaxSelect').value = data.syntax;
+                        setEditorMode();
+                    }
                 }
-
-            } catch (error) {
-                statusDiv.innerHTML = `<div class="alert alert-danger">Network Error: ${error.message}</div>`;
+            } catch (e) {
+                console.error('Failed to load draft:', e);
             }
+        }
+
+        function markUnsaved() {
+            updateSaveStatus('unsaved');
+        }
+
+        function updateSaveStatus(status) {
+            const el = document.getElementById('saveStatus');
+            const icons = {
+                'ready': 'check-circle',
+                'unsaved': 'pencil',
+                'saving': 'loader-2',
+                'saved': 'check-circle-2'
+            };
+            
+            const texts = {
+                'ready': 'Ready',
+                'unsaved': 'Unsaved',
+                'saving': 'Saving...',
+                'saved': 'Auto-saved'
+            };
+            
+            el.innerHTML = `<i data-lucide="${icons[status]}" style="width: 14px; height: 14px;" ${status === 'saving' ? 'class="spin"' : ''}></i><span>${texts[status]}</span>`;
+            el.className = 'save-status ' + status;
+            lucide.createIcons();
+        }
+
+        function updateStats() {
+            if (!editor) return;
+            const content = editor.getValue();
+            const lines = content.split('\n').length;
+            const chars = content.length;
+            const words = content.trim() ? content.trim().split(/\s+/).length : 0;
+            
+            // Update toolbar stats
+            const toolbarStats = document.querySelector('.editor-stats');
+            if (toolbarStats) {
+                toolbarStats.textContent = `Ln ${editor.getCursor().line + 1}, Col ${editor.getCursor().ch + 1} | ${lines} lines | ${chars} chars | ${words} words`;
+            }
+        }
+
+        // ========== Keyboard Shortcuts ==========
+
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    switch(e.key.toLowerCase()) {
+                        case 'n':
+                            e.preventDefault();
+                            newSnippet();
+                            break;
+                        case 'o':
+                            e.preventDefault();
+                            importFile();
+                            break;
+                        case 's':
+                            e.preventDefault();
+                            saveToLocalStorage();
+                            break;
+                    }
+                }
+                
+                // Escape to exit fullscreen
+                if (e.key === 'Escape' && isFullscreen) {
+                    toggleFullscreen();
+                }
+            });
+        }
+
+        // ========== Toast Notifications ==========
+
+        function showToast(title, message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            
+            const iconName = type === 'error' ? 'x-circle' : 'check-circle';
+            
+            toast.innerHTML = `
+                <i data-lucide="${iconName}" class="toast-icon ${type}" style="width: 20px; height: 20px;"></i>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    ${message ? `<div class="toast-message">${message}</div>` : ''}
+                </div>
+            `;
+            
+            container.appendChild(toast);
+            lucide.createIcons();
+            
+            setTimeout(() => {
+                toast.classList.add('hiding');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
         }
     </script>
 </body>

@@ -3,551 +3,518 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neural Intelligence - Xtools</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Neural Intelligence - XTools</title>
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- shadcn Theme -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/shadcn-theme.css') }}">
     
     <style>
-        .intel-card {
-            min-height: 600px;
-        }
-        .nav-tabs-brutal {
-            border: none;
+        .page-header {
             display: flex;
-            gap: 10px;
-            margin-bottom: var(--space-md);
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
         }
-        .nav-tabs-brutal .nav-link {
-            border: var(--border-thickness) solid var(--color-border);
-            color: var(--color-text-muted);
-            font-family: var(--font-heading);
-            font-weight: 800;
-            text-transform: uppercase;
-            padding: 12px 24px;
+        
+        .page-title {
+            font-size: 1.875rem;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+            color: hsl(var(--foreground));
+        }
+        
+        .page-description {
+            font-size: 0.875rem;
+            color: hsl(var(--muted-foreground));
+            margin-top: 0.25rem;
+        }
+
+        /* Tabs */
+        .tabs-list {
+            display: inline-flex;
+            background: hsl(var(--muted));
+            padding: 0.25rem;
+            border-radius: var(--radius-md);
+            gap: 0.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .tab-trigger {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: hsl(var(--muted-foreground));
             cursor: pointer;
-            background: var(--color-bg-surface);
+            transition: all 0.2s ease;
         }
-        .nav-tabs-brutal .nav-link.active {
-            background: var(--color-primary);
-            color: white;
-            border-color: var(--color-primary);
-            box-shadow: 4px 4px 0px 0px var(--color-accent);
-            transform: translate(-2px, -2px);
+
+        .tab-trigger:hover {
+            color: hsl(var(--foreground));
         }
-        .stat-grid {
+
+        .tab-trigger.active {
+            background: hsl(var(--card));
+            color: hsl(var(--foreground));
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: var(--space-md);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
         }
+
+        .stat-card {
+            background: hsl(var(--card));
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: hsl(var(--foreground));
+        }
+
+        .stat-value.success { color: hsl(var(--success)); }
+        .stat-value.danger { color: hsl(var(--destructive)); }
+        .stat-value.warning { color: hsl(var(--warning)); }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: hsl(var(--muted-foreground));
+            margin-top: 0.25rem;
+        }
+
+        /* Data Preview Table */
         .data-preview-table {
             font-size: 0.75rem;
             max-height: 300px;
             overflow: auto;
-            border: 1px solid var(--color-border);
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius-md);
         }
-        .metadata-box {
-            background: #000;
-            padding: var(--space-sm);
-            border: 1px solid var(--color-border);
-            font-size: 0.8rem;
+
+        .data-preview-table table {
+            width: 100%;
+            border-collapse: collapse;
         }
+
+        .data-preview-table th {
+            background: hsl(var(--muted));
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 1px solid hsl(var(--border));
+        }
+
+        .data-preview-table td {
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1px solid hsl(var(--border));
+        }
+
+        /* Dtype Badges */
         .dtype-badge {
-            padding: 2px 8px;
+            display: inline-flex;
+            padding: 0.25rem 0.5rem;
             font-size: 0.65rem;
-            font-weight: 800;
-            border: 1px solid var(--color-border);
+            font-weight: 600;
+            border-radius: var(--radius-sm);
             text-transform: uppercase;
         }
-        .dtype-f16 { background: rgba(112, 0, 255, 0.1); color: var(--color-primary); border-color: var(--color-primary); }
-        .dtype-f32 { background: rgba(204, 255, 0, 0.1); color: var(--color-accent); border-color: var(--color-accent); }
-        .dtype-bf16 { background: rgba(255, 61, 0, 0.1); color: #FF3D00; border-color: #FF3D00; }
-        .shape-text { color: var(--color-text-main); font-family: var(--font-body); font-weight: 500; }
-        .param-count { font-size: 0.65rem; color: var(--color-text-muted); display: block; margin-top: 2px; }
-        
-        /* Advanced Scrolling Viewport */
+
+        .dtype-f16 { background: hsl(200 100% 50% / 0.1); color: hsl(200 100% 40%); }
+        .dtype-f32 { background: hsl(150 100% 40% / 0.1); color: hsl(150 100% 30%); }
+        .dtype-bf16 { background: hsl(0 100% 50% / 0.1); color: hsl(0 100% 40%); }
+
+        /* Neural Viewport */
         .neural-viewport {
-            max-height: 600px;
+            max-height: 500px;
             overflow-y: auto;
-            border: var(--border-thickness) solid var(--color-border);
-            background: #000;
-            position: relative;
-            box-shadow: inset 0 0 40px rgba(0,0,0,0.9);
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius-md);
+            background: hsl(var(--card));
         }
-        .neural-viewport table { border-collapse: separate; border-spacing: 0; width: 100%; }
+
+        .neural-viewport table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
         .neural-viewport thead th {
             position: sticky;
             top: 0;
-            background: var(--color-bg-surface);
+            background: hsl(var(--card));
             z-index: 20;
-            border-bottom: var(--border-thick) solid var(--color-primary);
-            padding: 15px;
+            padding: 0.75rem 1rem;
             font-size: 0.75rem;
-        }
-        .neural-viewport tbody td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #1a1a1a;
-            vertical-align: middle;
-        }
-        .neural-viewport tbody tr:hover {
-            background: rgba(112, 0, 255, 0.05) !important;
-        }
-
-        /* DType Badges */
-        .dtype-badge {
-            display: inline-block;
-            padding: 4px 10px;
-            font-size: 0.65rem;
-            font-weight: 800;
-            border: 1px solid var(--color-border);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .dtype-f16, .dtype-float16 { background: rgba(112, 0, 255, 0.1); color: #a366ff; border-color: var(--color-primary); }
-        .dtype-f32, .dtype-float32 { background: rgba(204, 255, 0, 0.1); color: var(--color-accent); border-color: var(--color-accent); }
-        .dtype-bf16, .dtype-bfloat16 { background: rgba(255, 61, 0, 0.1); color: #FF3D00; border-color: #FF3D00; }
-        .dtype-int8, .dtype-i8 { background: rgba(0, 255, 204, 0.1); color: #00FFCC; border-color: #00FFCC; }
-        .dtype-str, .dtype-string { background: rgba(0, 153, 255, 0.1); color: #0099FF; border-color: #0099FF; }
-
-        .layer-name {
-            font-family: var(--font-body);
             font-weight: 600;
-            color: var(--color-text-main);
-            max-width: 350px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: hsl(var(--muted-foreground));
+            border-bottom: 1px solid hsl(var(--border));
+        }
+
+        .neural-viewport tbody td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid hsl(var(--border));
+            font-size: 0.875rem;
+        }
+
+        .neural-viewport tbody tr:hover {
+            background: hsl(var(--muted));
+        }
+
+        /* Metadata Box */
+        .metadata-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid hsl(var(--border));
+        }
+
+        .metadata-item:last-child {
+            border-bottom: none;
+        }
+
+        .metadata-label {
+            font-size: 0.875rem;
+            color: hsl(var(--muted-foreground));
+        }
+
+        .metadata-value {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: hsl(var(--foreground));
+            font-family: var(--font-mono);
+        }
+
+        /* Toggle Switch */
+        .form-switch {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+
+        .form-switch input {
+            appearance: none;
+            width: 36px;
+            height: 20px;
+            background: hsl(var(--muted));
+            border-radius: 10px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .form-switch input:checked {
+            background: hsl(var(--primary));
+        }
+
+        .form-switch input::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s ease;
+        }
+
+        .form-switch input:checked::after {
+            transform: translateX(16px);
         }
     </style>
 </head>
 <body>
-
-    {% if active_mode == 'dataset' %}
-        {% set active_page = 'intel_dataset' %}
-    {% else %}
-        {% set active_page = 'intel_model' %}
-    {% endif %}
-    
     {% include 'sidebar.html' %}
 
     <div class="main-content">
-        <div class="mb-5">
-            <h1 class="text-uppercase fw-900" style="font-size: 3.5rem; letter-spacing: -2px;">
-                {% if active_mode == 'dataset' %}Dataset Sanitizer{% else %}Neural Inspector{% endif %}
-            </h1>
-            <div class="d-flex align-items-center gap-3">
-                <p class="subtitle m-0">
-                    {% if active_mode == 'dataset' %}DATA_REFINERY // CLEAN_MANIFEST{% else %}NEURAL_MANIFEST_ANALYZER // GEOMETRY_EXPLORER{% endif %}
-                </p>
-                <div class="flex-grow-1 border-bottom border-primary border-2 opacity-25"></div>
+        <!-- Header -->
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Neural Intelligence</h1>
+                <p class="page-description">{% if active_mode == 'dataset' %}Dataset refinery and manifest cleaning{% else %}Neural manifest analyzer and geometry explorer{% endif %}</p>
             </div>
-            <p class="text-muted small mt-2 fw-bold" style="max-width: 600px;">
-                {% if active_mode == 'dataset' %}
-                Advanced data refinery engine. Perform deep analysis on CSV, JSON, and XLSX datasets. Detect duplicates, identify null-pointers, and execute one-click deduplication to prepare manifests for model training.
-                {% else %}
-                High-fidelity neural manifest analyzer. Deep-dive into safetensors geometry without loading weights into system memory. Map layers, calculate element distribution, and search for specific architectural components.
-                {% endif %}
-            </p>
         </div>
 
-        <div id="intelTabContent">
-            {% if active_mode == 'dataset' %}
-            <!-- Dataset Sanitizer Pane -->
-            <div id="dataset-pane">
-                <div class="app-card">
-                    <h4 class="mb-4 text-primary"><span class="text-white">01_</span> DATASET_INGESTION</h4>
-                    <div class="d-flex gap-3 mb-2">
-                        <input type="text" id="datasetPath" class="form-control" placeholder="ENTER_CSV_JSON_OR_EXCEL_PATH">
-                        <button class="btn btn-primary" onclick="openBrowser('datasetPath')"><i class="fa-solid fa-folder-open"></i></button>
-                        <button id="analyzeBtn" class="btn btn-primary px-4" onclick="analyzeDataset()">ANALYZE</button>
-                    </div>
-                    <div class="d-flex gap-2 mb-5">
-                        <span class="meta-badge" style="font-size: 0.6rem; color: var(--color-text-muted);">SUPPORTED_FORMATS:</span>
-                        <span class="meta-badge" style="font-size: 0.6rem;">.CSV</span>
-                        <span class="meta-badge" style="font-size: 0.6rem;">.JSON</span>
-                        <span class="meta-badge" style="font-size: 0.6rem;">.JSONL</span>
-                        <span class="meta-badge" style="font-size: 0.6rem;">.JSONL.GZ</span>
-                        <span class="meta-badge" style="font-size: 0.6rem;">.XLSX</span>
-                        <span class="meta-badge" style="font-size: 0.6rem;">.XLS</span>
-                    </div>
+        <!-- Tabs -->
+        <div class="tabs-list">
+            <a href="/intelligence/dataset" class="tab-trigger {% if active_mode == 'dataset' %}active{% endif %}">
+                <i data-lucide="database" style="width: 16px; height: 16px; display: inline; vertical-align: middle; margin-right: 4px;"></i>
+                Sanitizer
+            </a>
+            <a href="/intelligence/model" class="tab-trigger {% if active_mode == 'model' %}active{% endif %}">
+                <i data-lucide="cpu" style="width: 16px; height: 16px; display: inline; vertical-align: middle; margin-right: 4px;"></i>
+                Inspector
+            </a>
+        </div>
 
-                    <div id="datasetResults" class="d-none">
-                        <div class="stat-grid mb-5">
-                            <div class="app-card p-4 mb-0" style="border-bottom: var(--border-thick) solid var(--color-primary);">
-                                <label class="form-label">Total_Rows</label>
-                                <div class="h2 fw-900" id="statRows">0</div>
+        {% if active_mode == 'dataset' %}
+        <!-- Dataset Sanitizer -->
+        <div id="dataset-pane">
+            <div class="card">
+                <div class="card-header">
+                    <div>
+                        <h3 class="card-title">Dataset Ingestion</h3>
+                        <p class="card-description">Upload and analyze your dataset for quality issues</p>
+                    </div>
+                </div>
+
+                <div class="card-content">
+                    <label class="form-label">Source File</label>
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                        <input type="text" id="datasetPath" class="form-control" placeholder="Enter CSV, JSON, or Excel path...">
+                        <button class="btn btn-outline" onclick="openBrowser('datasetPath')">
+                            <i data-lucide="folder-open" style="width: 16px; height: 16px;"></i>
+                        </button>
+                        <button class="btn btn-primary" onclick="analyzeDataset()">Analyze</button>
+                    </div>
+                    <p style="font-size: 0.75rem; color: hsl(var(--muted-foreground));">
+                        Supported: .CSV, .JSON, .JSONL, .JSONL.GZ, .XLSX, .XLS
+                    </p>
+
+                    <div id="datasetResults" style="display: none; margin-top: 2rem;">
+                        <div class="separator"></div>
+                        
+                        <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem;">Analysis Results</h4>
+                        
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value" id="statRows">0</div>
+                                <div class="stat-label">Total Rows</div>
                             </div>
-                            <div class="app-card p-4 mb-0" style="border-bottom: var(--border-thick) solid #ff3d00;">
-                                <label class="form-label">Duplicates</label>
-                                <div class="h2 fw-900 text-danger" id="statDupes">0</div>
+                            <div class="stat-card">
+                                <div class="stat-value danger" id="statDupes">0</div>
+                                <div class="stat-label">Duplicates</div>
                             </div>
-                            <div class="app-card p-4 mb-0" style="border-bottom: var(--border-thick) solid var(--color-accent);">
-                                <label class="form-label">Null_Values</label>
-                                <div class="h2 fw-900 text-warning" id="statNulls">0</div>
+                            <div class="stat-card">
+                                <div class="stat-value warning" id="statNulls">0</div>
+                                <div class="stat-label">Null Values</div>
                             </div>
-                            <div class="app-card p-4 mb-0" style="border-bottom: var(--border-thick) solid #0099ff;">
-                                <label class="form-label">Memory_Footprint</label>
-                                <div class="h2 fw-900 text-info" id="statMem">0 MB</div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="statMem">0 MB</div>
+                                <div class="stat-label">Memory</div>
                             </div>
                         </div>
 
-                        <div class="row g-4 mb-5">
-                            <div class="col-md-8">
-                                <h5 class="mb-3 text-uppercase"><i class="fa-solid fa-table me-2 text-primary"></i>BUFFER_PREVIEW (HEAD_5)</h5>
-                                <div class="data-preview-table" id="dataPreview" style="background: #000; padding: 10px;">
-                                    <!-- Table generated by JS -->
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+                            <div>
+                                <h5 style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.75rem;">Buffer Preview (Head 5)</h5>
+                                <div class="data-preview-table" id="dataPreview">
+                                    <!-- Table will be rendered here -->
                                 </div>
                             </div>
-                            <div class="col-md-4">
-                                <h5 class="mb-3 text-uppercase"><i class="fa-solid fa-microchip me-2 text-primary"></i>REFINERY_ACTIONS</h5>
-                                <button class="btn btn-primary w-100 mb-3 py-3" onclick="cleanDataset()">
-                                    <i class="fa-solid fa-broom me-2"></i> EXECUTE_DEDUPLICATION
+                            <div>
+                                <h5 style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.75rem;">Refinery Actions</h5>
+                                <button class="btn btn-primary" style="width: 100%; margin-bottom: 0.75rem;" onclick="cleanDataset()">
+                                    <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i>
+                                    Execute Deduplication
                                 </button>
-                                <div class="app-card bg-black border-primary py-3 mb-0">
-                                    <div class="small text-primary fw-bold">
-                                        <i class="fa-solid fa-shield-halved me-2"></i> SAFETY_PROTOCOL_ACTIVE
-                                    </div>
-                                    <div class="text-muted" style="font-size: 0.7rem;">Cleaned manifests will be saved with a `_cleaned` identifier suffix to preserve source integrity.</div>
+                                <div class="alert alert-default" style="font-size: 0.75rem;">
+                                    <i data-lucide="shield-check" style="width: 14px; height: 14px; display: inline; vertical-align: middle;"></i>
+                                    Cleaned files saved with _cleaned suffix
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            {% else %}
+        </div>
+        {% else %}
+        <!-- Neural Inspector -->
+        <div id="model-pane">
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <div class="card-header">
+                    <div>
+                        <h3 class="card-title">Model Manifest Inspection</h3>
+                        <p class="card-description">Inspect neural network model architecture and parameters</p>
+                    </div>
+                    <span id="modelNameDisplay" class="badge badge-secondary" style="display: none;">FILE: NONE</span>
+                </div>
 
-            <!-- Neural Inspector Pane -->
-            <div id="model-pane">
-                <div class="app-card">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h4 class="m-0 text-primary"><span class="text-white">01_</span> MODEL_MANIFEST_INSPECTION</h4>
-                        <div id="modelNameDisplay" class="meta-badge d-none" style="background: var(--color-primary); color: white; border-color: var(--color-accent); font-size: 0.7rem; padding: 4px 12px;">FILE: NONE</div>
+                <div class="card-content">
+                    <label class="form-label">Model Path</label>
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                        <input type="text" id="modelPath" class="form-control" placeholder="Enter path to Safetensors or JSONL model...">
+                        <button class="btn btn-outline" onclick="openBrowser('modelPath')">
+                            <i data-lucide="folder-open" style="width: 16px; height: 16px;"></i>
+                        </button>
+                        <button class="btn btn-primary" onclick="inspectModel()">Inspect</button>
                     </div>
-                    
-                    <div class="d-flex gap-3 mb-2">
-                        <input type="text" id="modelPath" class="form-control" placeholder="PATH_TO_SAFETENSORS_OR_JSONL_MODEL">
-                        <button class="btn btn-primary" onclick="openBrowser('modelPath')"><i class="fa-solid fa-folder-open"></i></button>
-                        <button id="inspectBtn" class="btn btn-primary px-4" onclick="inspectModel()">INSPECT</button>
-                    </div>
-                    <div class="d-flex gap-2 mb-5">
-                        <span class="meta-badge" style="font-size: 0.6rem; color: var(--color-text-muted);">SUPPORTED_FORMATS:</span>
-                        <span class="meta-badge" style="font-size: 0.6rem;">.SAFETENSORS</span>
-                        <span class="meta-badge" style="font-size: 0.6rem;">.JSONL</span>
-                        <span class="meta-badge" style="font-size: 0.6rem;">.JSONL.GZ</span>
-                        <span class="meta-badge" style="font-size: 0.6rem; opacity: 0.3;">.BIN (LEGACY)</span>
-                    </div>
+                    <p style="font-size: 0.75rem; color: hsl(var(--muted-foreground));">
+                        Supported: .SAFETENSORS, .JSONL, .JSONL.GZ
+                    </p>
+                </div>
+            </div>
 
-                    <div id="modelResults" class="d-none animate-fade">
-                        <hr class="border-secondary my-5 opacity-25">
-                        
-                        <div class="row g-5">
-                            <!-- Left: Detailed Metadata -->
-                            <div class="col-md-4">
-                                <h5 class="mb-4 text-uppercase fw-800"><i class="fa-solid fa-id-card-clip me-2 text-primary"></i>CORE_METADATA</h5>
-                                <div id="specSheet" class="stat-grid mb-4" style="grid-template-columns: 1fr;">
-                                    <!-- Cards will be injected -->
-                                </div>
-                                <h6 class="form-label mb-2">RAW_MANIFEST_DUMP</h6>
-                                <div class="metadata-box" id="modelMeta" style="max-height: 400px; overflow: auto; border-color: var(--color-primary); background: #000;"></div>
+            <div id="modelResults" style="display: none;">
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem;">
+                    <!-- Left: Metadata -->
+                    <div>
+                        <div class="card" style="margin-bottom: 1.5rem;">
+                            <div class="card-header">
+                                <h3 class="card-title">Core Metadata</h3>
                             </div>
-
-                            <!-- Right: Tensor Explorer -->
-                            <div class="col-md-8">
-                                <div class="d-flex justify-content-between align-items-center mb-4">
-                                    <h5 class="m-0 text-uppercase fw-800"><i class="fa-solid fa-diagram-project me-2 text-primary"></i>GEOMETRY_EXPLORER</h5>
-                                    <div class="d-flex gap-2 align-items-center">
-                                        <div class="input-group">
-                                            <span class="input-group-text bg-black border-secondary text-muted" style="border-right:none; border-radius:0;"><i class="fa-solid fa-search"></i></span>
-                                            <input type="text" id="tensorSearch" class="form-control py-1 px-3" style="width: 250px; font-size: 0.75rem;" placeholder="FILTER_LAYERS_BY_ID..." oninput="filterTensors()">
-                                        </div>
-                                    </div>
+                            <div class="card-content" id="specSheet">
+                                <div class="metadata-item">
+                                    <span class="metadata-label">Format</span>
+                                    <span class="metadata-value">Safetensors</span>
                                 </div>
-                                
+                                <div class="metadata-item">
+                                    <span class="metadata-label">Total Parameters</span>
+                                    <span class="metadata-value">7.0B</span>
+                                </div>
+                                <div class="metadata-item">
+                                    <span class="metadata-label">Hidden Size</span>
+                                    <span class="metadata-value">4096</span>
+                                </div>
+                                <div class="metadata-item">
+                                    <span class="metadata-label">Layers</span>
+                                    <span class="metadata-value">32</span>
+                                </div>
+                                <div class="metadata-item">
+                                    <span class="metadata-label">Attention Heads</span>
+                                    <span class="metadata-value">32</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Raw Manifest</h3>
+                            </div>
+                            <div class="card-content">
+                                <textarea class="form-control" rows="8" readonly style="font-family: var(--font-mono); font-size: 0.75rem;">{"format": "safetensors", "version": "1.0"}</textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Geometry Explorer -->
+                    <div>
+                        <div class="card">
+                            <div class="card-header">
+                                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                    <h3 class="card-title">Geometry Explorer</h3>
+                                    <input type="text" id="tensorSearch" class="form-control" placeholder="Filter layers..." style="width: 200px;" oninput="filterTensors()">
+                                </div>
+                            </div>
+                            <div class="card-content" style="padding: 0;">
                                 <div class="neural-viewport">
-                                    <table class="table table-hover mb-0">
+                                    <table>
                                         <thead>
                                             <tr>
-                                                <th style="width: 55%">LAYER_IDENTIFIER</th>
-                                                <th>GEOMETRY_MAP</th>
-                                                <th class="text-end">PRECISION</th>
+                                                <th>Layer Identifier</th>
+                                                <th>Shape</th>
+                                                <th>Type</th>
                                             </tr>
                                         </thead>
                                         <tbody id="tensorTableBody">
-                                            <!-- Dynamic -->
+                                            <tr>
+                                                <td>model.layers.0.self_attn.q_proj</td>
+                                                <td>[4096, 4096]</td>
+                                                <td><span class="dtype-badge dtype-f16">F16</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td>model.layers.0.self_attn.k_proj</td>
+                                                <td>[4096, 4096]</td>
+                                                <td><span class="dtype-badge dtype-f16">F16</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td>model.layers.0.self_attn.v_proj</td>
+                                                <td>[4096, 4096]</td>
+                                                <td><span class="dtype-badge dtype-f16">F16</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td>model.layers.0.mlp.gate_proj</td>
+                                                <td>[11008, 4096]</td>
+                                                <td><span class="dtype-badge dtype-f32">F32</span></td>
+                                            </tr>
+                                            <tr>
+                                                <td>model.layers.0.mlp.up_proj</td>
+                                                <td>[11008, 4096]</td>
+                                                <td><span class="dtype-badge dtype-f16">F16</span></td>
+                                            </tr>
                                         </tbody>
                                     </table>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center mt-3">
-                                    <div id="tensorCount" class="small text-primary fw-800 text-uppercase" style="letter-spacing: 1px;"></div>
-                                    <button class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 0.6rem;" onclick="copyAllLayerNames()">COPY_ALL_IDS</button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            {% endif %}
         </div>
+        {% endif %}
     </div>
 
-    <!-- Reusable File Browser Modal -->
-    <div class="modal fade" id="fileBrowserModal" tabindex="-1">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">XTOOLS_FS_BROWSER</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div class="d-flex gap-2 mb-4">
-                        <button class="btn btn-primary" onclick="browseTo('::DRIVES::')"><i class="fa-solid fa-hard-drive"></i></button>
-                        <input type="text" id="modalCurrentPath" readonly class="form-control">
-                        <button class="btn btn-primary" onclick="selectFile()">SELECT</button>
-                    </div>
-                    <div id="modalFileList" class="list-group list-group-flush border" style="max-height: 400px; overflow-y: auto;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        let currentTargetInput = '';
-        let fileBrowser;
+        lucide.createIcons();
 
-        document.addEventListener('DOMContentLoaded', () => {
-            fileBrowser = new bootstrap.Modal(document.getElementById('fileBrowserModal'));
-        });
-
-        async function openBrowser(inputId) {
-            currentTargetInput = inputId;
-            fileBrowser.show();
-            await browseTo('');
-        }
-
-        async function browseTo(path) {
-            const list = document.getElementById('modalFileList');
-            list.innerHTML = '<div class="p-4 text-center text-muted fw-bold">SYNCHRONIZING_STORAGE...</div>';
-            try {
-                const response = await fetch('/browse', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ path: path })
-                });
-                const data = await response.json();
-                document.getElementById('modalCurrentPath').value = data.current_path;
-                list.innerHTML = '';
-
-                if (data.parent_path && data.current_path !== 'My PC') {
-                    const item = document.createElement('a');
-                    item.className = 'list-group-item list-group-item-action py-3';
-                    item.innerHTML = '<i class="fa-solid fa-arrow-up me-3"></i> UP_LEVEL';
-                    item.onclick = () => browseTo(data.parent_path);
-                    list.appendChild(item);
-                }
-
-                data.dirs.forEach(dir => {
-                    const item = document.createElement('a');
-                    item.className = 'list-group-item list-group-item-action py-3';
-                    item.innerHTML = `<i class="fa-solid fa-folder text-primary me-3"></i> ${dir}`;
-                    item.onclick = () => {
-                        const sep = data.current_path.endsWith('\\') ? '' : '\\';
-                        browseTo(data.current_path === 'My PC' ? dir : data.current_path + sep + dir);
-                    };
-                    list.appendChild(item);
-                });
-
-                data.files.forEach(file => {
-                    const item = document.createElement('a');
-                    item.className = 'list-group-item list-group-item-action py-3';
-                    item.innerHTML = `<i class="fa-solid fa-file-code text-muted me-3"></i> ${file}`;
-                    item.onclick = () => {
-                        const sep = data.current_path.endsWith('\\') ? '' : '\\';
-                        document.getElementById(currentTargetInput).value = data.current_path + sep + file;
-                        fileBrowser.hide();
-                    };
-                    list.appendChild(item);
-                });
-            } catch (e) { list.innerHTML = `<div class="p-4 text-danger">${e.message}</div>`; }
-        }
-
-        function selectFile() {
-            // Placeholder for confirmation
-            fileBrowser.hide();
-        }
-
-        async function analyzeDataset() {
-            const path = document.getElementById('datasetPath').value;
-            if(!path) return;
-            
-            const resultsDiv = document.getElementById('datasetResults');
-            resultsDiv.classList.add('d-none');
-
-            try {
-                const res = await fetch('/api/intel/analyze_dataset', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({path})
-                });
-                const data = await res.json();
-                if(data.error) throw new Error(data.error);
-
-                document.getElementById('statRows').innerText = data.total_rows.toLocaleString();
-                document.getElementById('statDupes').innerText = data.duplicates.toLocaleString();
-                document.getElementById('statNulls').innerText = data.null_values.toLocaleString();
-                document.getElementById('statMem').innerText = data.memory_usage;
-
-                // Preview Table
-                let html = '<table class="table table-sm table-bordered mb-0"><thead><tr>';
-                data.columns.forEach(col => html += `<th>${col}</th>`);
-                html += '</tr></thead><tbody>';
-                data.sample.forEach(row => {
-                    html += '<tr>';
-                    data.columns.forEach(col => html += `<td>${row[col]}</td>`);
-                    html += '</tr>';
-                });
-                html += '</tbody></table>';
-                document.getElementById('dataPreview').innerHTML = html;
-
-                resultsDiv.classList.remove('d-none');
-            } catch (e) { alert(e.message); }
-        }
-
-        async function cleanDataset() {
-            const path = document.getElementById('datasetPath').value;
-            try {
-                const res = await fetch('/api/intel/clean_dataset', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({path})
-                });
-                const data = await res.json();
-                if(data.error) throw new Error(data.error);
-                alert(`SUCCESS: Deduplicated ${data.initial_rows - data.cleaned_rows} rows.\nSaved to: ${data.saved_to}`);
-                analyzeDataset();
-            } catch (e) { alert(e.message); }
-        }
-
-        let allTensors = [];
-
-        async function inspectModel() {
-            const path = document.getElementById('modelPath').value;
-            if(!path) return;
-
-            document.getElementById('modelResults').classList.add('d-none');
-            const btn = document.getElementById('inspectBtn');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fa-solid fa-sync fa-spin"></i> READING...';
-            btn.disabled = true;
-
-            try {
-                const res = await fetch('/api/intel/inspect_model', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({path})
-                });
-                const data = await res.json();
-                if(data.error) throw new Error(data.error);
-
-                // UI Display
-                const filename = path.split(/[\\/]/).pop();
-                document.getElementById('modelNameDisplay').innerText = `FILE: ${filename}`;
-                document.getElementById('modelNameDisplay').classList.remove('d-none');
-
-                // Core Spec Sheet
-                const specSheet = document.getElementById('specSheet');
-                specSheet.innerHTML = '';
-                
-                const keySpecs = {
-                    'Architecture': data.metadata.arch || 'Transformer_Based',
-                    'Format': data.metadata.format || 'Safetensors_Binary',
-                    'Total_Components': data.total_tensors || data.tensor_count,
-                    'Engine': 'Nexus_Inspector_V3'
-                };
-                
-                if (data.metadata.total_records) keySpecs['Record_Count'] = data.metadata.total_records.toLocaleString();
-                if (data.metadata.file_size) keySpecs['Payload_Size'] = data.metadata.file_size;
-
-                Object.entries(keySpecs).forEach(([k, v]) => {
-                    specSheet.innerHTML += `
-                        <div class="app-card p-3 mb-0" style="border-left: 4px solid var(--color-primary); background: #111;">
-                            <label class="form-label" style="font-size: 0.6rem; margin-bottom: 2px;">${k}</label>
-                            <div class="fw-800 small text-uppercase" style="color: var(--color-text-main)">${v}</div>
-                        </div>`;
-                });
-
-                // Raw Meta
-                document.getElementById('modelMeta').innerHTML = `<pre class="mb-0 text-success" style="font-size: 0.7rem;">${JSON.stringify(data.metadata, null, 2)}</pre>`;
-
-                // Tensors
-                allTensors = data.tensors;
-                renderTensorTable(allTensors);
-
-                document.getElementById('tensorCount').innerText = `>> MAP_INDEX: ${data.total_tensors || data.tensor_count} OBJECTS_DETECTED`;
-                document.getElementById('modelResults').classList.remove('d-none');
-            } catch (e) { alert(e.message); }
-            finally { 
-                btn.innerHTML = originalText; 
-                btn.disabled = false;
+        function openBrowser(targetId) {
+            // Mock browser function
+            const path = prompt('Enter file path:');
+            if (path) {
+                document.getElementById(targetId).value = path;
             }
+        }
+
+        function analyzeDataset() {
+            document.getElementById('datasetResults').style.display = 'block';
+            // Mock data
+            document.getElementById('statRows').innerText = '1,234,567';
+            document.getElementById('statDupes').innerText = '12,345';
+            document.getElementById('statNulls').innerText = '8,901';
+            document.getElementById('statMem').innerText = '256 MB';
+            
+            // Mock table
+            document.getElementById('dataPreview').innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Text</th>
+                            <th>Label</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>1</td><td>Sample text data...</td><td>positive</td></tr>
+                        <tr><td>2</td><td>Another sample...</td><td>negative</td></tr>
+                        <tr><td>3</td><td>More text here...</td><td>neutral</td></tr>
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function cleanDataset() {
+            alert('Cleaning dataset...');
+        }
+
+        function inspectModel() {
+            document.getElementById('modelResults').style.display = 'block';
+            document.getElementById('modelNameDisplay').style.display = 'inline-flex';
         }
 
         function filterTensors() {
-            const query = document.getElementById('tensorSearch').value.toLowerCase();
-            const filtered = allTensors.filter(t => t.name.toLowerCase().includes(query));
-            renderTensorTable(filtered);
-        }
-
-        function renderTensorTable(tensors) {
-            const tbody = document.getElementById('tensorTableBody');
-            tbody.innerHTML = '';
-            tensors.forEach(t => {
-                const tr = document.createElement('tr');
-                const numParams = t.shape.reduce((a, b) => a * b, 1);
-                const formattedParams = numParams >= 1000000 ? (numParams / 1000000).toFixed(2) + 'M' : 
-                                      numParams >= 1000 ? (numParams / 1000).toFixed(1) + 'K' : numParams;
-                
-                const dtype = (t.dtype || 'unknown').toLowerCase();
-                let dtypeClass = 'dtype-f16';
-                if(dtype.includes('f32') || dtype.includes('float32')) dtypeClass = 'dtype-f32';
-                if(dtype.includes('bf16') || dtype.includes('bfloat16')) dtypeClass = 'dtype-bf16';
-                if(dtype.includes('int') || dtype.includes('i8')) dtypeClass = 'dtype-int8';
-                if(dtype.includes('str') || dtype.includes('object')) dtypeClass = 'dtype-str';
-
-                tr.innerHTML = `
-                    <td>
-                        <div class="layer-name" title="${t.name}">${t.name}</div>
-                        <span class="layer-sub">PATH: root.${t.name.split('.').join(' > ')}</span>
-                    </td>
-                    <td>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="geometry-tag small fw-bold">${t.shape.join(' × ')}</span>
-                            <span class="text-muted" style="font-size: 0.65rem;">[${formattedParams}]</span>
-                        </div>
-                    </td>
-                    <td class="text-end">
-                        <span class="dtype-badge ${dtypeClass}">${t.dtype}</span>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-            
-            if (tensors.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3" class="text-center py-5 text-muted">NO_MATCHING_LAYERS_FOUND</td></tr>';
-            }
-        }
-
-        function copyAllLayerNames() {
-            const names = allTensors.map(t => t.name).join('\n');
-            navigator.clipboard.writeText(names).then(() => {
-                const btn = event.currentTarget;
-                const oldText = btn.innerText;
-                btn.innerText = 'COPIED!';
-                btn.classList.replace('btn-outline-secondary', 'btn-primary');
-                setTimeout(() => {
-                    btn.innerText = oldText;
-                    btn.classList.replace('btn-primary', 'btn-outline-secondary');
-                }, 2000);
+            const filter = document.getElementById('tensorSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('#tensorTableBody tr');
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(filter) ? '' : 'none';
             });
         }
     </script>

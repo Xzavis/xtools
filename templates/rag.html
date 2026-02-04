@@ -3,209 +3,452 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RAG Architect - Xtools</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>RAG Architect - XTools</title>
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- shadcn Theme -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/shadcn-theme.css') }}">
     
     <style>
-        .data-slab {
-            background: var(--color-bg-surface);
-            border: var(--border-thickness) solid var(--color-border);
-            padding: var(--space-md);
-            margin-bottom: var(--space-md);
-            position: relative;
-            transition: all 0.2s;
-        }
-        .data-slab:hover {
-            border-color: var(--color-primary);
-            transform: translate(-4px, -4px);
-            box-shadow: 6px 6px 0px 0px var(--color-primary);
-        }
-        .slab-meta {
-            position: absolute;
-            top: -12px;
-            right: 20px;
+        .page-header {
             display: flex;
-            gap: 10px;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
         }
+        
+        .page-title {
+            font-size: 1.875rem;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+            color: hsl(var(--foreground));
+        }
+        
+        .page-description {
+            font-size: 0.875rem;
+            color: hsl(var(--muted-foreground));
+            margin-top: 0.25rem;
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            display: flex;
+            gap: 1.5rem;
+            padding: 1rem;
+            background: hsl(var(--muted));
+            border-radius: var(--radius-md);
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stat-icon {
+            width: 32px;
+            height: 32px;
+            background: hsl(var(--card));
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: hsl(var(--muted-foreground));
+        }
+
+        .stat-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: hsl(var(--foreground));
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: hsl(var(--muted-foreground));
+        }
+
+        /* Text Area */
+        .text-area-large {
+            min-height: 200px;
+            resize: vertical;
+        }
+
+        /* Chunk Cards */
+        .chunk-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .chunk-card {
+            background: hsl(var(--card));
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius-lg);
+            padding: 1rem;
+            position: relative;
+        }
+
+        .chunk-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .chunk-number {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: hsl(var(--muted-foreground));
+            background: hsl(var(--muted));
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius-sm);
+        }
+
+        .chunk-meta {
+            display: flex;
+            gap: 0.75rem;
+            font-size: 0.75rem;
+            color: hsl(var(--muted-foreground));
+        }
+
         .chunk-content {
-            font-family: var(--font-body);
-            font-size: 0.85rem;
-            color: var(--color-text-muted);
-            white-space: pre-wrap;
-            max-height: 150px;
+            font-size: 0.875rem;
+            color: hsl(var(--foreground));
+            line-height: 1.6;
+            max-height: 120px;
             overflow: hidden;
-            display: -webkit-box;
-            -webkit-line-clamp: 5;
-            -webkit-box-orient: vertical;
+            position: relative;
         }
-        .config-card {
-            position: sticky;
-            top: var(--space-xl);
+
+        .chunk-content::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: linear-gradient(transparent, hsl(var(--card)));
+        }
+
+        .chunk-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid hsl(var(--border));
+        }
+
+        /* Slider */
+        .slider-container {
+            margin-bottom: 1rem;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .slider-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: hsl(var(--foreground));
+        }
+
+        .slider-value {
+            font-size: 0.875rem;
+            color: hsl(var(--muted-foreground));
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: hsl(var(--muted));
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: hsl(var(--primary));
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
         }
     </style>
 </head>
 <body>
-
-    {% set active_page = 'intel_rag' %}
     {% include 'sidebar.html' %}
 
     <div class="main-content">
-        <div class="mb-5">
-            <h1 class="text-uppercase fw-900" style="font-size: 3.5rem; letter-spacing: -2px;">RAG Architect</h1>
-            <p class="subtitle">SEMANTIC_PARTITIONING // KNOWLEDGE_BASE_ENGINE</p>
-            <p class="text-muted small mt-2 fw-bold" style="max-width: 600px;">
-                Transform raw unstructured text into optimized semantic chunks. Manage context overlap and token density for seamless integration with Vector Databases and LLM RAG pipelines.
-            </p>
+        <!-- Header -->
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">RAG Architect</h1>
+                <p class="page-description">Semantic partitioning for RAG knowledge base</p>
+            </div>
+            <button class="btn btn-outline" onclick="loadDemoText()">
+                <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+                Load Demo
+            </button>
         </div>
 
-        <div class="row g-5">
-            <!-- Left: Input Area -->
-            <div class="col-lg-8">
-                <div class="app-card mb-5">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h4 class="m-0 text-primary">01_ SOURCE_INPUT</h4>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="loadDemoText()">LOAD_DEMO_DATA</button>
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-icon">
+                    <i data-lucide="type" style="width: 16px; height: 16px;"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="inputStats">0 chars</span>
+                    <span class="stat-label">Input Size</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon">
+                    <i data-lucide="hash" style="width: 16px; height: 16px;"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="tokenStats">0 tokens</span>
+                    <span class="stat-label">Est. Tokens</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-icon">
+                    <i data-lucide="layers" style="width: 16px; height: 16px;"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="chunkStats">0 chunks</span>
+                    <span class="stat-label">Generated</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+            <!-- Left: Input & Results -->
+            <div>
+                <!-- Input Area -->
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Source Input</h3>
+                            <p class="card-description">Paste your document text here</p>
+                        </div>
                     </div>
-                    <textarea id="rawText" class="form-control" rows="12" placeholder="PASTE_RAW_DOCUMENT_TEXT_HERE..."></textarea>
-                    
-                    <div class="d-flex justify-content-between align-items-center mt-4">
-                        <div id="inputStats" class="small fw-bold text-muted">CHARS: 0 // ESTIMATED_TOKENS: 0</div>
-                        <button class="btn btn-primary px-5" onclick="processChunks()">
-                            <i class="fa-solid fa-gears me-2"></i> GENERATE_CHUNKS
-                        </button>
+                    <div class="card-content">
+                        <textarea id="rawText" class="form-control text-area-large" placeholder="Paste your document text here..."></textarea>
+                        
+                        <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+                            <button class="btn btn-primary" onclick="processChunks()">
+                                <i data-lucide="zap" style="width: 16px; height: 16px;"></i>
+                                Generate Chunks
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <div id="resultsArea" class="d-none">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h4 class="m-0 text-primary">02_ GENERATED_SLABS</h4>
-                        <div class="badge-status border-primary text-primary" id="totalChunksBadge">0 CHUNKS</div>
+                <!-- Results Area -->
+                <div id="resultsArea" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="font-size: 1.125rem; font-weight: 600;">Generated Chunks</h3>
+                        <span class="badge badge-secondary" id="totalChunksBadge">0 chunks</span>
                     </div>
-                    <div id="chunksContainer">
-                        <!-- Slabs injected here -->
+                    
+                    <div class="chunk-grid" id="chunksContainer">
+                        <!-- Chunks will be rendered here -->
+                    </div>
+
+                    <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+                        <button class="btn btn-outline" onclick="exportToJSON()">
+                            <i data-lucide="download" style="width: 16px; height: 16px;"></i>
+                            Export JSON
+                        </button>
+                        <button class="btn btn-destructive" onclick="clearAll()">
+                            <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+                            Clear All
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Right: Config Area -->
-            <div class="col-lg-4">
-                <div class="app-card config-card">
-                    <h5 class="form-label mb-4">PARTITION_STRATEGY</h5>
-                    
-                    <div class="mb-4">
-                        <label class="form-label">Chunk_Size (Chars)</label>
-                        <input type="number" id="chunkSize" class="form-control" value="1000" step="100">
-                        <div class="form-text small opacity-50">Target length for each data slab.</div>
+            <!-- Right: Config Panel -->
+            <div>
+                <div class="card" style="position: sticky; top: 2rem;">
+                    <div class="card-header">
+                        <h3 class="card-title">Partition Strategy</h3>
+                        <p class="card-description">Configure chunking parameters</p>
                     </div>
+                    <div class="card-content">
+                        <!-- Chunk Size -->
+                        <div class="slider-container">
+                            <div class="slider-header">
+                                <span class="slider-label">Chunk Size</span>
+                                <span class="slider-value" id="chunkSizeValue">1000 chars</span>
+                            </div>
+                            <input type="range" id="chunkSize" min="100" max="5000" step="100" value="1000" oninput="updateSliderDisplay('chunkSize', 'chunkSizeValue', ' chars')">
+                            <p style="font-size: 0.75rem; color: hsl(var(--muted-foreground)); margin-top: 0.25rem;">Target length for each chunk</p>
+                        </div>
 
-                    <div class="mb-4">
-                        <label class="form-label">Overlap_Window</label>
-                        <input type="number" id="overlap" class="form-control" value="200" step="50">
-                        <div class="form-text small opacity-50">Context retention between segments.</div>
+                        <!-- Overlap -->
+                        <div class="slider-container">
+                            <div class="slider-header">
+                                <span class="slider-label">Overlap</span>
+                                <span class="slider-value" id="overlapValue">200 chars</span>
+                            </div>
+                            <input type="range" id="overlap" min="0" max="1000" step="50" value="200" oninput="updateSliderDisplay('overlap', 'overlapValue', ' chars')">
+                            <p style="font-size: 0.75rem; color: hsl(var(--muted-foreground)); margin-top: 0.25rem;">Context retention between chunks</p>
+                        </div>
+
+                        <div class="separator"></div>
+
+                        <!-- Strategy Select -->
+                        <label class="form-label">Splitting Strategy</label>
+                        <select class="form-select" style="margin-bottom: 1rem;">
+                            <option value="recursive">Recursive Character</option>
+                            <option value="token">Token-based</option>
+                            <option value="sentence">Sentence Boundary</option>
+                            <option value="paragraph">Paragraph Boundary</option>
+                        </select>
+
+                        <!-- Separator -->
+                        <label class="form-label">Separators</label>
+                        <input type="text" class="form-control" value="\\n\\n, \\n, . , ," style="margin-bottom: 1rem; font-family: var(--font-mono); font-size: 0.75rem;">
+                        <p style="font-size: 0.75rem; color: hsl(var(--muted-foreground));">Characters to split on (in order)</p>
                     </div>
-
-                    <hr class="border-secondary opacity-25 my-4">
-
-                    <button class="btn btn-outline-secondary w-100 mb-3" onclick="exportJSONL()">
-                        <i class="fa-solid fa-file-export me-2"></i> EXPORT_TO_JSONL
-                    </button>
-                    <button class="btn btn-outline-secondary w-100" onclick="clearAll()">
-                        <i class="fa-solid fa-trash-can me-2"></i> PURGE_BUFFER
-                    </button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        const rawTextArea = document.getElementById('rawText');
-        rawTextArea.addEventListener('input', () => {
-            const len = rawTextArea.value.length;
-            const tokens = Math.ceil(len / 4);
-            document.getElementById('inputStats').innerText = `CHARS: ${len.toLocaleString()} // ESTIMATED_TOKENS: ${tokens.toLocaleString()}`;
-        });
+        lucide.createIcons();
 
-        function loadDemoText() {
-            const demo = `NEXUS_CORE SYSTEM MANIFEST:
-Retrieval-Augmented Generation (RAG) is a technique for enhancing the accuracy and reliability of generative AI models with facts fetched from external sources. By grounding LLMs on specific, up-to-date data, RAG reduces the risk of hallucinations. 
-
-The process involves several key stages:
-1. Document Ingestion: Converting raw files into searchable text.
-2. Semantic Chunking: Breaking text into small, context-rich pieces.
-3. Embedding: Converting chunks into numerical vectors.
-4. Retrieval: Searching for the most relevant chunks during a query.
-
-NEXUS_CORE focuses on the critical 'Semantic Chunking' stage, ensuring that your data slabs retain enough context via overlap windows while staying within token limits for high-performance inference.`;
-            rawTextArea.value = demo;
-            rawTextArea.dispatchEvent(new Event('input'));
+        function updateSliderDisplay(inputId, displayId, suffix) {
+            const value = document.getElementById(inputId).value;
+            document.getElementById(displayId).innerText = value + suffix;
         }
 
-        async function processChunks() {
-            const text = rawTextArea.value;
-            const size = document.getElementById('chunkSize').value;
-            const overlap = document.getElementById('overlap').value;
+        function updateStats() {
+            const text = document.getElementById('rawText').value;
+            const len = text.length;
+            const tokens = Math.ceil(len / 4); // Rough estimate
+            
+            document.getElementById('inputStats').innerText = len.toLocaleString() + ' chars';
+            document.getElementById('tokenStats').innerText = tokens.toLocaleString() + ' tokens';
+        }
 
-            if(!text) return alert("INPUT_EMPTY");
+        document.getElementById('rawText').addEventListener('input', updateStats);
 
-            const res = await fetch('/api/intel/rag_chunk', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({text, chunk_size: size, overlap: overlap})
-            });
-            const data = await res.json();
-
-            if(data.success) {
-                renderChunks(data.chunks);
-                document.getElementById('resultsArea').classList.remove('d-none');
-                document.getElementById('totalChunksBadge').innerText = `${data.total_chunks} CHUNKS`;
+        function processChunks() {
+            const text = document.getElementById('rawText').value;
+            if (!text.trim()) {
+                alert('Please enter some text to process.');
+                return;
             }
-        }
 
-        function renderChunks(chunks) {
+            const chunkSize = parseInt(document.getElementById('chunkSize').value);
+            const overlap = parseInt(document.getElementById('overlap').value);
+            
+            // Simple chunking logic
+            const chunks = [];
+            let i = 0;
+            while (i < text.length) {
+                const end = Math.min(i + chunkSize, text.length);
+                chunks.push(text.substring(i, end));
+                i += chunkSize - overlap;
+            }
+
+            // Display chunks
             const container = document.getElementById('chunksContainer');
             container.innerHTML = '';
-            chunks.forEach(c => {
-                const slab = document.createElement('div');
-                slab.className = 'data-slab animate-fade';
-                slab.innerHTML = `
-                    <div class="slab-meta">
-                        <span class="meta-badge" style="background: #000;">ID_${String(c.index).padStart(3, '0')}</span>
-                        <span class="meta-badge" style="background: var(--color-primary); color: white; border-color: var(--color-accent);">${c.tokens_est} TKNS</span>
+            
+            chunks.forEach((chunk, idx) => {
+                const card = document.createElement('div');
+                card.className = 'chunk-card';
+                card.innerHTML = `
+                    <div class="chunk-header">
+                        <span class="chunk-number">Chunk ${idx + 1}</span>
+                        <div class="chunk-meta">
+                            <span><i data-lucide="type" style="width: 12px; height: 12px; display: inline; vertical-align: middle;"></i> ${chunk.length} chars</span>
+                            <span><i data-lucide="hash" style="width: 12px; height: 12px; display: inline; vertical-align: middle;"></i> ${Math.ceil(chunk.length / 4)} tokens</span>
+                        </div>
                     </div>
-                    <div class="chunk-content">${escapeHTML(c.content)}</div>
-                    <div class="mt-3 d-flex justify-content-end">
-                        <button class="btn btn-sm py-1 px-2" style="font-size: 0.6rem;" onclick="copyChunk(this)">COPY_BLOCK</button>
+                    <div class="chunk-content">${chunk}</div>
+                    <div class="chunk-actions">
+                        <button class="btn btn-sm btn-outline" onclick="copyChunk(${idx})">
+                            <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+                            Copy
+                        </button>
+                        <button class="btn btn-sm btn-ghost" onclick="deleteChunk(${idx})">
+                            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                        </button>
                     </div>
                 `;
-                container.appendChild(slab);
+                container.appendChild(card);
             });
+
+            document.getElementById('resultsArea').style.display = 'block';
+            document.getElementById('chunkStats').innerText = chunks.length + ' chunks';
+            document.getElementById('totalChunksBadge').innerText = chunks.length + ' chunks';
+            
+            lucide.createIcons();
         }
 
-        function escapeHTML(str) {
-            return str.replace(/[&<>"']/g, function(m) {
-                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
-            });
+        function copyChunk(idx) {
+            // Copy to clipboard logic
+            alert('Chunk ' + (idx + 1) + ' copied!');
         }
 
-        function copyChunk(btn) {
-            const content = btn.parentElement.previousElementSibling.innerText;
-            navigator.clipboard.writeText(content);
-            const original = btn.innerText;
-            btn.innerText = "COPIED!";
-            setTimeout(() => btn.innerText = original, 1000);
+        function deleteChunk(idx) {
+            // Delete logic
+            alert('Chunk ' + (idx + 1) + ' deleted!');
+        }
+
+        function loadDemoText() {
+            const demo = `This is a demonstration of the RAG Architect tool. 
+
+It helps you split large documents into manageable chunks for Retrieval-Augmented Generation (RAG) systems.
+
+The tool supports various splitting strategies including:
+- Recursive character splitting
+- Token-based splitting  
+- Sentence boundary detection
+- Paragraph boundary detection
+
+You can configure chunk size, overlap, and separators to optimize for your specific use case.
+
+Proper chunking is crucial for RAG performance as it affects:
+1. Retrieval accuracy
+2. Context window utilization
+3. Answer coherence
+
+Experiment with different parameters to find the best configuration for your data.`;
+            
+            document.getElementById('rawText').value = demo;
+            updateStats();
+        }
+
+        function exportToJSON() {
+            alert('Exporting chunks to JSON...');
         }
 
         function clearAll() {
-            rawTextArea.value = '';
-            document.getElementById('resultsArea').classList.add('d-none');
-            document.getElementById('inputStats').innerText = `CHARS: 0 // ESTIMATED_TOKENS: 0`;
-        }
-
-        function exportJSONL() {
-            // Placeholder for export logic
-            alert("EXPORT_SEQUENCE_INITIALIZED: Check console for payload debug.");
+            document.getElementById('rawText').value = '';
+            document.getElementById('resultsArea').style.display = 'none';
+            updateStats();
         }
     </script>
 </body>

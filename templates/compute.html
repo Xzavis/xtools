@@ -3,98 +3,327 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Compute Ops - Xtools</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>VRAM Calculator - XTools</title>
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- shadcn Theme -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/shadcn-theme.css') }}">
     
     <style>
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .page-title {
+            font-size: 1.875rem;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+            color: hsl(var(--foreground));
+        }
+        
+        .page-description {
+            font-size: 0.875rem;
+            color: hsl(var(--muted-foreground));
+            margin-top: 0.25rem;
+        }
+
+        /* Result Display */
         .vram-display {
-            background: #000;
-            border: var(--border-thickness) solid var(--color-primary);
-            padding: var(--space-md);
-            box-shadow: 8px 8px 0px 0px var(--color-accent);
+            background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(222.2 47.4% 20%) 100%);
+            color: hsl(var(--primary-foreground));
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
         }
-        .vram-bar-container {
+
+        .vram-total {
+            font-size: 3rem;
+            font-weight: 700;
+            margin: 1rem 0;
+        }
+
+        .vram-unit {
+            font-size: 1.5rem;
+            font-weight: 500;
+        }
+
+        .vram-breakdown {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .vram-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+        }
+
+        .vram-item-label {
+            font-size: 0.75rem;
+            opacity: 0.8;
+            margin-bottom: 0.25rem;
+        }
+
+        .vram-item-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        /* GPU Recommendation */
+        .gpu-recommendation {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: hsl(var(--muted));
+            border-radius: var(--radius-md);
+            margin-top: 1rem;
+        }
+
+        .gpu-icon {
+            width: 40px;
             height: 40px;
-            background: #111;
-            border: 2px solid var(--color-border);
-            position: relative;
-            margin: var(--space-md) 0;
+            background: hsl(var(--success));
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
         }
-        .vram-bar-fill {
+
+        .gpu-icon.warning {
+            background: hsl(var(--warning));
+        }
+
+        .gpu-icon.danger {
+            background: hsl(var(--destructive));
+        }
+
+        .gpu-info {
+            flex: 1;
+        }
+
+        .gpu-name {
+            font-weight: 600;
+            color: hsl(var(--foreground));
+        }
+
+        .gpu-status {
+            font-size: 0.75rem;
+            color: hsl(var(--muted-foreground));
+        }
+
+        /* Preset Buttons */
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .preset-btn {
+            padding: 0.5rem 0.75rem;
+            background: hsl(var(--muted));
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius-md);
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: hsl(var(--foreground));
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .preset-btn:hover {
+            background: hsl(var(--accent));
+            border-color: hsl(var(--ring));
+        }
+
+        /* Progress Bar */
+        .vram-progress {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: var(--radius-full);
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        .vram-progress-fill {
             height: 100%;
-            background: var(--color-primary);
-            transition: width 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: var(--radius-full);
+            transition: width 0.3s ease;
         }
     </style>
 </head>
 <body>
-
-    {% set active_page = 'compute_vram' %}
     {% include 'sidebar.html' %}
 
     <div class="main-content">
-        <div class="mb-5">
-            <h1 class="text-uppercase fw-900" style="font-size: 3.5rem; letter-spacing: -2px;">VRAM Calculator</h1>
-            <p class="subtitle">RESOURCE_PROJECTION // GPU_OPTIMIZATION</p>
-            <p class="text-muted small mt-2 fw-bold" style="max-width: 600px;">
-                Project hardware requirements for large language models. Calculate VRAM footprint based on parameter count, quantization bit-depth, and context window overhead.
-            </p>
+        <!-- Header -->
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">VRAM Calculator</h1>
+                <p class="page-description">Estimate GPU memory requirements for LLMs</p>
+            </div>
         </div>
 
-        <!-- VRAM Calculator Interface -->
-        <div class="row g-5">
-            <div class="col-md-6">
-                <div class="app-card">
-                    <h4 class="mb-4 text-primary">01_ MODEL_PARAMETERS</h4>
-                    <div class="mb-4">
-                        <label class="form-label">Parameter_Count (Billion)</label>
-                        <input type="number" id="vramParams" class="form-control" value="7" step="0.1" oninput="calculateVRAM()">
-                        <div class="form-text small opacity-50">e.g., Llama-3-8B = 8.0</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <!-- Left: Input Parameters -->
+            <div>
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">
+                        <h3 class="card-title">Model Parameters</h3>
+                        <p class="card-description">Configure your model specifications</p>
                     </div>
-                    <div class="mb-4">
-                        <label class="form-label">Quantization_Bit_Depth</label>
-                        <select id="vramBits" class="form-select" onchange="calculateVRAM()">
+                    <div class="card-content">
+                        <!-- Model Presets -->
+                        <label class="form-label">Quick Presets</label>
+                        <div class="preset-grid">
+                            <button class="preset-btn" onclick="setPreset(7)">LLaMA-2 7B</button>
+                            <button class="preset-btn" onclick="setPreset(13)">LLaMA-2 13B</button>
+                            <button class="preset-btn" onclick="setPreset(70)">LLaMA-2 70B</button>
+                            <button class="preset-btn" onclick="setPreset(8)">Mistral 7B</button>
+                            <button class="preset-btn" onclick="setPreset(70)">Falcon 70B</button>
+                            <button class="preset-btn" onclick="setPreset(175)">GPT-3 175B</button>
+                        </div>
+
+                        <div class="separator"></div>
+
+                        <!-- Parameter Count -->
+                        <label class="form-label">Parameter Count (Billions)</label>
+                        <input type="number" id="vramParams" class="form-control" value="7" step="0.1" min="0.1" oninput="calculateVRAM()">
+                        <p style="font-size: 0.75rem; color: hsl(var(--muted-foreground)); margin-top: 0.25rem; margin-bottom: 1rem;">e.g., Llama-3-8B = 8.0</p>
+
+                        <!-- Quantization -->
+                        <label class="form-label">Quantization</label>
+                        <select id="vramBits" class="form-select" onchange="calculateVRAM()" style="margin-bottom: 1rem;">
                             <option value="32">FP32 (Full Precision)</option>
                             <option value="16" selected>FP16 / BF16 (Half)</option>
                             <option value="8">INT8 (Quantized)</option>
                             <option value="6">Q6_K (GGUF)</option>
-                            <option value="4">Q4_K_M / INT4 (Standard)</option>
+                            <option value="4">Q4_K_M / INT4</option>
                             <option value="3">Q3_K / 3-bit</option>
                         </select>
+
+                        <!-- Context Window -->
+                        <label class="form-label">Context Window (Tokens)</label>
+                        <input type="number" id="vramContext" class="form-control" value="8192" step="512" min="512" oninput="calculateVRAM()">
+                        <p style="font-size: 0.75rem; color: hsl(var(--muted-foreground)); margin-top: 0.25rem; margin-bottom: 1rem;">Max tokens for inference</p>
+
+                        <!-- Batch Size -->
+                        <label class="form-label">Batch Size</label>
+                        <input type="number" id="vramBatch" class="form-control" value="1" step="1" min="1" oninput="calculateVRAM()">
                     </div>
-                    <div class="mb-4">
-                        <label class="form-label">Context_Window (Tokens)</label>
-                        <input type="number" id="vramContext" class="form-control" value="8192" step="512" oninput="calculateVRAM()">
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Advanced Options</h3>
+                    </div>
+                    <div class="card-content">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                            <input type="checkbox" id="useGradientCheckpoint" onchange="calculateVRAM()" style="width: 16px; height: 16px;">
+                            <label for="useGradientCheckpoint" style="font-size: 0.875rem;">Gradient Checkpointing</label>
+                        </div>
+                        <p style="font-size: 0.75rem; color: hsl(var(--muted-foreground)); margin-left: 1.5rem; margin-bottom: 1rem;">Reduces VRAM by ~30% but slower</p>
+
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                            <input type="checkbox" id="useOptimizer" onchange="calculateVRAM()" style="width: 16px; height: 16px;">
+                            <label for="useOptimizer" style="font-size: 0.875rem;">Include Optimizer States</label>
+                        </div>
+                        <p style="font-size: 0.75rem; color: hsl(var(--muted-foreground)); margin-left: 1.5rem; margin-bottom: 1rem;">For training (AdamW: 2x params)</p>
+
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" id="useOffload" onchange="calculateVRAM()" style="width: 16px; height: 16px;">
+                            <label for="useOffload" style="font-size: 0.875rem;">CPU Offload</label>
+                        </div>
+                        <p style="font-size: 0.75rem; color: hsl(var(--muted-foreground)); margin-left: 1.5rem;">Offload some layers to system RAM</p>
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
+
+            <!-- Right: Results -->
+            <div>
                 <div class="vram-display">
-                    <h4 class="text-uppercase mb-4 text-accent">VRAM_PROJECTION_RESULT</h4>
-                    <div class="row text-center">
-                        <div class="col-6 mb-4 border-end border-secondary">
-                            <small class="text-muted d-block fw-bold">MODEL_WEIGHTS</small>
-                            <span class="h2 fw-900" id="resWeights">0.00</span> <small>GB</small>
+                    <div style="font-size: 0.875rem; opacity: 0.8;">Total VRAM Required</div>
+                    <div class="vram-total">
+                        <span id="resTotal">14.2</span>
+                        <span class="vram-unit">GB</span>
+                    </div>
+                    <div class="vram-progress">
+                        <div class="vram-progress-fill" id="vramProgressBar" style="width: 50%;"></div>
+                    </div>
+
+                    <div class="vram-breakdown">
+                        <div class="vram-item">
+                            <div class="vram-item-label">Model Weights</div>
+                            <div class="vram-item-value" id="resWeights">13.0 GB</div>
                         </div>
-                        <div class="col-6 mb-4">
-                            <small class="text-muted d-block fw-bold">KV_CACHE</small>
-                            <span class="h2 fw-900" id="resCache">0.00</span> <small>GB</small>
+                        <div class="vram-item">
+                            <div class="vram-item-label">KV Cache</div>
+                            <div class="vram-item-value" id="resCache">1.2 GB</div>
+                        </div>
+                        <div class="vram-item">
+                            <div class="vram-item-label">Activations</div>
+                            <div class="vram-item-value" id="resActivations">0.0 GB</div>
+                        </div>
+                        <div class="vram-item">
+                            <div class="vram-item-label">Overhead</div>
+                            <div class="vram-item-value" id="resOverhead">0.5 GB</div>
                         </div>
                     </div>
-                    
-                    <div class="vram-bar-container">
-                        <div id="vramBar" class="vram-bar-fill" style="width: 0%"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">GPU Recommendations</h3>
                     </div>
-                    
-                    <div class="d-flex justify-content-between align-items-end mt-4">
-                        <div>
-                            <small class="text-muted fw-bold d-block">TOTAL_ESTIMATED_FOOTPRINT</small>
-                            <span class="display-4 fw-900 text-primary" id="resTotal">0.00</span> <span class="h4">GB</span>
+                    <div class="card-content">
+                        <div class="gpu-recommendation" id="gpuRec1">
+                            <div class="gpu-icon">
+                                <i data-lucide="check" style="width: 20px; height: 20px;"></i>
+                            </div>
+                            <div class="gpu-info">
+                                <div class="gpu-name">RTX 3090 / RTX 4090</div>
+                                <div class="gpu-status">24 GB VRAM - Perfect fit</div>
+                            </div>
                         </div>
-                        <div class="text-end">
-                            <div class="badge-status border-accent text-accent" id="vramAdvice">READY_FOR_PROJECT</div>
+
+                        <div class="gpu-recommendation" id="gpuRec2">
+                            <div class="gpu-icon warning">
+                                <i data-lucide="alert-triangle" style="width: 20px; height: 20px;"></i>
+                            </div>
+                            <div class="gpu-info">
+                                <div class="gpu-name">RTX 4080 / RTX 3090 Ti</div>
+                                <div class="gpu-status">16 GB VRAM - Tight fit</div>
+                            </div>
+                        </div>
+
+                        <div class="gpu-recommendation" id="gpuRec3">
+                            <div class="gpu-icon danger">
+                                <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                            </div>
+                            <div class="gpu-info">
+                                <div class="gpu-name">RTX 4070 / RTX 3080</div>
+                                <div class="gpu-status">12 GB VRAM - Insufficient</div>
+                            </div>
+                        </div>
+
+                        <div class="separator"></div>
+
+                        <div class="alert alert-default" style="margin-bottom: 0;">
+                            <i data-lucide="info" style="width: 16px; height: 16px; display: inline; vertical-align: middle; margin-right: 4px;"></i>
+                            <span style="font-size: 0.875rem;">Actual VRAM usage may vary by 10-20% depending on framework overhead.</span>
                         </div>
                     </div>
                 </div>
@@ -103,46 +332,107 @@
     </div>
 
     <script>
-        function calculateVRAM() {
-            const params = document.getElementById('vramParams').value;
-            const bits = document.getElementById('vramBits').value;
-            const context = document.getElementById('vramContext').value;
+        lucide.createIcons();
 
-            fetch('/api/compute/vram_calc', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({params, bits, context})
-            })
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('resWeights').innerText = data.weight_vram;
-                document.getElementById('resCache').innerText = data.kv_cache;
-                document.getElementById('resTotal').innerText = data.total_estimated;
-                
-                // Visual bar (scaled to 24GB standard high-end consumer GPU)
-                let perc = (data.total_estimated / 24) * 100;
-                document.getElementById('vramBar').style.width = Math.min(perc, 100) + '%';
-                
-                const advice = document.getElementById('vramAdvice');
-                if(data.total_estimated <= 8) {
-                    advice.innerText = "FITS_IN_RTX_3060_8GB";
-                    advice.className = "badge-status border-accent text-accent";
-                } else if(data.total_estimated <= 12) {
-                    advice.innerText = "FITS_IN_RTX_3060_12GB";
-                    advice.className = "badge-status border-accent text-accent";
-                } else if(data.total_estimated <= 24) {
-                    advice.innerText = "FITS_IN_RTX_3090_4090";
-                    advice.className = "badge-status border-accent text-accent";
-                } else {
-                    advice.innerText = "MULTI_GPU_REQUIRED";
-                    advice.className = "badge-status border-danger text-danger";
-                }
-            });
+        function setPreset(billions) {
+            document.getElementById('vramParams').value = billions;
+            calculateVRAM();
         }
 
-        window.onload = () => {
-            if(document.getElementById('vramParams')) calculateVRAM();
-        };
+        function calculateVRAM() {
+            const params = parseFloat(document.getElementById('vramParams').value) || 0;
+            const bits = parseInt(document.getElementById('vramBits').value) || 16;
+            const context = parseInt(document.getElementById('vramContext').value) || 4096;
+            const batch = parseInt(document.getElementById('vramBatch').value) || 1;
+            const useCheckpoint = document.getElementById('useGradientCheckpoint').checked;
+            const useOptimizer = document.getElementById('useOptimizer').checked;
+
+            // Calculate model weights (bytes per parameter)
+            const bytesPerParam = bits / 8;
+            let modelWeights = params * 1e9 * bytesPerParam / 1e9; // in GB
+
+            // Calculate KV cache
+            // Assuming hidden_size = 4096, num_layers = 32, num_heads = 32
+            const hiddenSize = 4096;
+            const numLayers = 32;
+            const numHeads = 32;
+            const headDim = hiddenSize / numHeads;
+            
+            // KV cache per token: 2 * num_layers * num_heads * head_dim * bytes
+            const kvCachePerToken = 2 * numLayers * numHeads * headDim * bytesPerParam;
+            const kvCache = (kvCachePerToken * context * batch) / 1e9; // in GB
+
+            // Activations (rough estimate)
+            let activations = 0;
+            if (!useCheckpoint) {
+                activations = (params * 0.02 * batch); // Rough estimate
+            }
+
+            // Optimizer states (for training)
+            let optimizer = 0;
+            if (useOptimizer) {
+                optimizer = modelWeights * 2; // AdamW stores 2x parameters
+            }
+
+            // Overhead (framework, CUDA, etc.)
+            const overhead = 0.5;
+
+            // Total VRAM
+            let total = modelWeights + kvCache + activations + optimizer + overhead;
+
+            // Update display
+            document.getElementById('resWeights').innerText = modelWeights.toFixed(1) + ' GB';
+            document.getElementById('resCache').innerText = kvCache.toFixed(1) + ' GB';
+            document.getElementById('resActivations').innerText = activations.toFixed(1) + ' GB';
+            document.getElementById('resOverhead').innerText = overhead.toFixed(1) + ' GB';
+            document.getElementById('resTotal').innerText = total.toFixed(1);
+
+            // Update progress bar (relative to 24GB)
+            const percentage = Math.min((total / 24) * 100, 100);
+            document.getElementById('vramProgressBar').style.width = percentage + '%';
+
+            // Update GPU recommendations
+            updateGPURecommendations(total);
+        }
+
+        function updateGPURecommendations(vram) {
+            const rec1 = document.getElementById('gpuRec1');
+            const rec2 = document.getElementById('gpuRec2');
+            const rec3 = document.getElementById('gpuRec3');
+
+            if (vram <= 24) {
+                rec1.querySelector('.gpu-icon').className = 'gpu-icon';
+                rec1.querySelector('.gpu-status').innerText = '24 GB VRAM - Perfect fit';
+            } else {
+                rec1.querySelector('.gpu-icon').className = 'gpu-icon danger';
+                rec1.querySelector('.gpu-status').innerText = '24 GB VRAM - Insufficient';
+            }
+
+            if (vram <= 16) {
+                rec2.querySelector('.gpu-icon').className = 'gpu-icon';
+                rec2.querySelector('.gpu-status').innerText = '16 GB VRAM - Perfect fit';
+            } else if (vram <= 20) {
+                rec2.querySelector('.gpu-icon').className = 'gpu-icon warning';
+                rec2.querySelector('.gpu-status').innerText = '16 GB VRAM - Tight fit';
+            } else {
+                rec2.querySelector('.gpu-icon').className = 'gpu-icon danger';
+                rec2.querySelector('.gpu-status').innerText = '16 GB VRAM - Insufficient';
+            }
+
+            if (vram <= 12) {
+                rec3.querySelector('.gpu-icon').className = 'gpu-icon';
+                rec3.querySelector('.gpu-status').innerText = '12 GB VRAM - Perfect fit';
+            } else if (vram <= 14) {
+                rec3.querySelector('.gpu-icon').className = 'gpu-icon warning';
+                rec3.querySelector('.gpu-status').innerText = '12 GB VRAM - Tight fit';
+            } else {
+                rec3.querySelector('.gpu-icon').className = 'gpu-icon danger';
+                rec3.querySelector('.gpu-status').innerText = '12 GB VRAM - Insufficient';
+            }
+        }
+
+        // Initial calculation
+        calculateVRAM();
     </script>
 </body>
 </html>

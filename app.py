@@ -362,24 +362,6 @@ def hf_download_server():
 
     return Response(stream_with_context(hf_handler.download_files_to_local(repo_id, files, local_dir, token, repo_type)), mimetype='application/json')
 
-@app.route('/file_manager')
-def file_manager_page():
-    return render_template('file_manager.html')
-
-@app.route('/fm/list', methods=['POST'])
-def fm_list():
-    return browse_files() # Reuse logic
-
-@app.route('/fm/mkdir', methods=['POST'])
-def fm_mkdir():
-    try:
-        data = request.json
-        os.makedirs(os.path.join(data['path'], data['name']))
-        return jsonify({"success": True})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
 @app.route('/converter')
 def converter_page():
     return render_template('converter.html')
