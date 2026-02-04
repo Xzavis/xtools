@@ -2,7 +2,8 @@ import os
 # Enable hf_transfer for maximum bandwidth utilization
 os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
 
-from flask import Flask, render_template, request, jsonify, send_file, make_response, Response, stream_with_context, redirect
+from flask import Flask, render_template, request, jsonify, send_file, make_response, Response, stream_with_context, redirect, session
+from functools import wraps
 import re
 import threading
 import struct
@@ -23,7 +24,16 @@ import markdown
 from huggingface_hub import snapshot_download, hf_hub_download, list_repo_files
 from hf_handler import HFHandler
 
+# Import security utilities
+try:
+    from security_utils import token_security
+    SECURITY_ENABLED = True
+except ImportError:
+    SECURITY_ENABLED = False
+    print("Warning: security_utils not found, running without advanced security")
+
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY') or os.urandom(32)
 hf_handler = HFHandler()
 
 progress_status = {"status": "Idle", "percentage": 0}
@@ -1256,11 +1266,28 @@ def save_settings(settings):
         print(f"Error saving settings: {e}")
         return False
 
+def require_auth(f):
+    """Decorator to require authentication"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if SECURITY_ENABLED:
+            # Check for lockout
+            is_locked, remaining = token_security.check_lockout()
+            if is_locked:
+                return jsonify({
+                    "success": False, 
+                    "error": f"Too many failed attempts. Try again in {remaining} seconds."
+                }), 429
+        return f(*args, **kwargs)
+    return decorated_function
+
 @app.route('/settings')
+@require_auth
 def settings_page():
     return render_template('settings.html', active_page='settings')
 
 @app.route('/api/settings', methods=['GET'])
+@require_auth
 def get_settings():
     """Get all settings"""
     try:
@@ -1268,13 +1295,19 @@ def get_settings():
         # Mask sensitive data for display
         display_settings = settings.copy()
         if 'hf_token' in display_settings and display_settings['hf_token']:
-            token = display_settings['hf_token']
-            display_settings['hf_token'] = token[:4] + '*' * (len(token) - 8) + token[-4:] if len(token) > 8 else '********'
+            # Show only first 4 and last 4 characters
+            display_settings['hf_token'] = 'hf_****...****'
+        
+        # Add security info
+        display_settings['security_enabled'] = SECURITY_ENABLED
+        display_settings['lockout_status'] = 'locked' if (SECURITY_ENABLED and token_security.check_lockout()[0]) else 'ok'
+        
         return jsonify({"success": True, "settings": display_settings})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route('/api/settings', methods=['POST'])
+@require_auth
 def save_settings_api():
     """Save settings"""
     try:
@@ -1283,13 +1316,35 @@ def save_settings_api():
         
         # Update settings
         if 'hf_token' in data:
+            token = data['hf_token']
             # Only update if not masked (user entered new token)
-            if not data['hf_token'].startswith('*'):
-                current_settings['hf_token'] = data['hf_token']
+            if not token.startswith('*'):
+                # Validate token format
+                if SECURITY_ENABLED:
+                    is_valid, error_msg = token_security.validate_token_format(token)
+                    if not is_valid:
+                        token_security.record_failed_attempt()
+                        token_security.audit_log('token_validation_failed', {'error': error_msg})
+                        return jsonify({"success": False, "error": error_msg}), 400
+                
+                # Encrypt token if security is enabled
+                if SECURITY_ENABLED:
+                    encrypted = token_security.encrypt_token(token)
+                    if encrypted:
+                        current_settings['hf_token'] = encrypted
+                        current_settings['token_hash'] = token_security.hash_token(token)
+                        current_settings['token_saved_at'] = time.time()
+                        token_security.audit_log('token_saved', {'hash_prefix': token[:8]})
+                    else:
+                        return jsonify({"success": False, "error": "Failed to encrypt token"}), 500
+                else:
+                    # Fallback: store plain (not recommended)
+                    current_settings['hf_token'] = token
+                    current_settings['token_hash'] = hashlib.sha256(token.encode()).hexdigest()[:16]
         
         # Save other settings
         for key, value in data.items():
-            if key != 'hf_token' or not (isinstance(value, str) and '*' in value):
+            if key not in ['hf_token', 'token_hash']:
                 current_settings[key] = value
         
         if save_settings(current_settings):
@@ -1301,11 +1356,96 @@ def save_settings_api():
 
 @app.route('/api/settings/token', methods=['GET'])
 def get_token():
-    """Get HF token (for internal use)"""
+    """Get HF token (for internal use) - checks env var first, then encrypted storage"""
     try:
+        # Priority 1: Environment variable (most secure for production)
+        if SECURITY_ENABLED:
+            env_token = token_security.get_token_from_env()
+            if env_token:
+                token_security.audit_log('token_retrieved_from_env')
+                return jsonify({"success": True, "token": env_token, "source": "environment"})
+        else:
+            env_token = os.environ.get('HF_TOKEN') or os.environ.get('HUGGINGFACE_TOKEN')
+            if env_token:
+                return jsonify({"success": True, "token": env_token, "source": "environment"})
+        
+        # Priority 2: Encrypted storage
         settings = load_settings()
-        token = settings.get('hf_token', '')
-        return jsonify({"success": True, "token": token})
+        encrypted_token = settings.get('hf_token', '')
+        
+        if encrypted_token:
+            # Decrypt if security is enabled
+            if SECURITY_ENABLED:
+                decrypted = token_security.decrypt_token(encrypted_token)
+                if decrypted:
+                    token_security.audit_log('token_retrieved_from_storage')
+                    return jsonify({"success": True, "token": decrypted, "source": "encrypted_storage"})
+                else:
+                    token_security.audit_log('token_decryption_failed')
+                    return jsonify({"success": False, "error": "Failed to decrypt token"}), 500
+            else:
+                # Fallback: assume plaintext
+                return jsonify({"success": True, "token": encrypted_token, "source": "storage"})
+        
+        return jsonify({"success": True, "token": "", "source": "none"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/security/status', methods=['GET'])
+def security_status():
+    """Get security status"""
+    try:
+        status = {
+            "security_enabled": SECURITY_ENABLED,
+            "encryption_available": SECURITY_ENABLED,
+            "environment_token_available": bool(os.environ.get('HF_TOKEN') or os.environ.get('HUGGINGFACE_TOKEN')),
+        }
+        
+        if SECURITY_ENABLED:
+            is_locked, remaining = token_security.check_lockout()
+            status['lockout_active'] = is_locked
+            status['lockout_remaining'] = remaining if is_locked else 0
+            status['max_attempts'] = token_security.max_attempts
+            status['lockout_duration'] = token_security.lockout_duration
+        
+        return jsonify({"success": True, "security": status})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/security/audit-log', methods=['GET'])
+def get_audit_log():
+    """Get recent audit log entries"""
+    try:
+        if not SECURITY_ENABLED:
+            return jsonify({"success": False, "error": "Security features not enabled"}), 400
+        
+        log_file = token_security.audit_log_file
+        if not os.path.exists(log_file):
+            return jsonify({"success": True, "logs": []})
+        
+        # Read last 100 entries
+        with open(log_file, 'r') as f:
+            lines = f.readlines()
+        
+        logs = []
+        for line in lines[-100:]:
+            try:
+                logs.append(json.loads(line.strip()))
+            except:
+                pass
+        
+        return jsonify({"success": True, "logs": logs})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/security/clear-lockout', methods=['POST'])
+def clear_lockout():
+    """Clear lockout status (for admin use)"""
+    try:
+        if SECURITY_ENABLED:
+            token_security._reset_lockout()
+            token_security.audit_log('lockout_cleared')
+        return jsonify({"success": True, "message": "Lockout cleared"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 

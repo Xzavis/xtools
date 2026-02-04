@@ -1,6 +1,18 @@
+# Local config & cache (contains secrets)
 .xtools_cache.json
 .xtools_settings.json
+.xtools_secure.json
+.xtools_lockout.json
+.xtools_audit.log
+
+# Binaries
 gh.deb
+
+# Python
 __pycache__/
 *.pyc
 .DS_Store
+
+# Environment
+.env
+.env.local

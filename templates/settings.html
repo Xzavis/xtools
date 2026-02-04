@@ -131,10 +131,44 @@
                 </div>
             </div>
         </div>
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <div class="settings-card-icon" style="background: hsl(var(--success) / 0.1); color: hsl(var(--success));">
+                    <i data-lucide="shield-check" style="width: 20px; height: 20px;"></i>
+                </div>
+                <div style="flex: 1;">
+                    <h2 class="settings-card-title">Security Status</h2>
+                    <p style="font-size: 0.875rem; color: hsl(var(--muted-foreground)); margin-top: 0.25rem;">Advanced security features</p>
+                </div>
+            </div>
+            <div id="securityStatusContent">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid hsl(var(--border));">
+                    <span style="font-size: 0.875rem; color: hsl(var(--foreground));">Encryption</span>
+                    <span id="encryptionStatus" class="status-badge status-badge-error">Loading...</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid hsl(var(--border));">
+                    <span style="font-size: 0.875rem; color: hsl(var(--foreground));">Environment Variable</span>
+                    <span id="envStatus" class="status-badge">Loading...</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0;">
+                    <span style="font-size: 0.875rem; color: hsl(var(--foreground));">Lockout Protection</span>
+                    <span id="lockoutStatus" class="status-badge status-badge-success">Active</span>
+                </div>
+                <div style="margin-top: 1rem; padding: 0.75rem; background: hsl(var(--muted)); border-radius: var(--radius-md);">
+                    <p style="font-size: 0.75rem; color: hsl(var(--muted-foreground)); margin: 0;">
+                        <i data-lucide="info" style="width: 12px; height: 12px; display: inline; vertical-align: middle; margin-right: 0.25rem;"></i>
+                        Token is encrypted using machine-specific key. Set HF_TOKEN environment variable for maximum security.
+                    </p>
+                </div>
+            </div>
+        </div>
     </div>
     <script>
         lucide.createIcons();
-        document.addEventListener('DOMContentLoaded', async function() { await loadSettings(); });
+        document.addEventListener('DOMContentLoaded', async function() { 
+            await loadSettings(); 
+            await loadSecurityStatus();
+        });
         async function loadSettings() {
             try {
                 const response = await fetch('/api/settings');
@@ -146,6 +180,42 @@
                     } else { updateTokenStatus(false); }
                 }
             } catch(e) { console.error('Failed to load settings:', e); }
+        }
+        async function loadSecurityStatus() {
+            try {
+                const response = await fetch('/api/security/status');
+                const result = await response.json();
+                if(result.success && result.security) {
+                    const sec = result.security;
+                    // Encryption status
+                    const encBadge = document.getElementById('encryptionStatus');
+                    if(sec.encryption_available) {
+                        encBadge.className = 'status-badge status-badge-success';
+                        encBadge.innerText = 'Enabled';
+                    } else {
+                        encBadge.className = 'status-badge status-badge-error';
+                        encBadge.innerText = 'Disabled';
+                    }
+                    // Environment status
+                    const envBadge = document.getElementById('envStatus');
+                    if(sec.environment_token_available) {
+                        envBadge.className = 'status-badge status-badge-success';
+                        envBadge.innerText = 'Available';
+                    } else {
+                        envBadge.className = 'status-badge';
+                        envBadge.innerText = 'Not Set';
+                    }
+                    // Lockout status
+                    const lockBadge = document.getElementById('lockoutStatus');
+                    if(sec.lockout_active) {
+                        lockBadge.className = 'status-badge status-badge-error';
+                        lockBadge.innerText = 'Locked (' + sec.lockout_remaining + 's)';
+                    } else {
+                        lockBadge.className = 'status-badge status-badge-success';
+                        lockBadge.innerText = 'Active';
+                    }
+                }
+            } catch(e) { console.error('Failed to load security status:', e); }
         }
         function updateTokenStatus(configured) {
             const badge = document.getElementById('tokenStatusBadge');
