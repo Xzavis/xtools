@@ -1,95 +1,302 @@
-# 🛠️ Xtools // Terminal Interface V3
+# XTools 🚀
 
-**Xtools** is a high-performance, minimalist web-based utility suite designed for AI developers and data engineers. Built with a **Dark Neubrutalism** aesthetic, it provides a centralized command center for handling large datasets, neural model weights, and semantic data processing.
+> **AI-Powered Developer Toolkit** with Dark Neon Cyberpunk UI
 
-![Platform Status](https://img.shields.io/badge/Status-Live-ccff00?style=for-the-badge&logo=probot&logoColor=black)
-![UI Style](https://img.shields.io/badge/UI-Neubrutalism-7000FF?style=for-the-badge)
-![Tech Stack](https://img.shields.io/badge/Stack-Python_Flask_Pandas-white?style=for-the-badge)
+[![Version](https://img.shields.io/badge/version-2.0-CB3CFF?style=flat-square)](https://github.com/yourusername/xtools)
+[![Python](https://img.shields.io/badge/python-3.8+-0B1739?style=flat-square&logo=python)](https://python.org)
+[![Flask](https://img.shields.io/badge/flask-2.0+-000000?style=flat-square&logo=flask)](https://flask.palletsprojects.com)
+[![License](https://img.shields.io/badge/license-MIT-21C3FC?style=flat-square)](LICENSE)
 
----
-
-## 🚀 CORE_MODULES
-
-### 1. **MODEL_HUB (HuggingFace Integration)**
-*   **Sequential Retrieval**: Robust, sequential file downloading with automatic **3x retry logic** and exponential backoff.
-*   **Smart Select**: One-click selection for specific file types (e.g., `.jsonl`, `.safetensors`).
-*   **Live Preview**: Instant browser-side preview for `.jsonl` and `.jsonl.gz` datasets immediately after download.
-*   **HF_Transfer Support**: Leverages maximum bandwidth for multi-gigabyte weight transfers.
-
-### 2. **NEURAL_INTELLIGENCE_SUITE**
-*   **Neural Inspector**: Deep-dive into `.safetensors` or `.jsonl` structural geometry. Map layers, inspect dtypes, and export layer IDs without loading weights into RAM.
-*   **Dataset Sanitizer**: Industrial-grade data refinery for `.csv`, `.json`, `.jsonl`, and `.jsonl.gz`. 
-    *   **Deduplication**: Safe deduplication even for nested JSON structures.
-    *   **Null Mapping**: Identify missing pointers in your training data.
-    *   **Schema Analysis**: Instant record counting and payload size calculation.
-
-### 3. **OPERATIONS & UTILITIES**
-*   **Split/Merge Engine**: Handle multi-gigabyte files by partitioning them into segments.
-*   **Universal Converter**: Transcode between Image (JPG/PNG/WEBP/PDF), Data (JSON/CSV/XLSX/YAML), and Document (MD/HTML) formats.
-*   **VRAM Calculator**: Precision hardware projection for LLM deployment.
-*   **Snippet Lab**: Persistent markdown storage for prompts and code snippets.
+![XTools Screenshot](static/screenshot.png)
 
 ---
 
-## 🛠️ INSTALLATION_GUIDE
+## ✨ Features
 
-### 1. Prerequisites
-*   **Python 3.9+**
-*   **HF_TOKEN** (Optional, but recommended for private repos and higher rate limits)
+### 🤖 AI & ML Tools
+- **🧠 Model Hub** - Download models from Hugging Face with resume support
+- **🔍 Model Inspector** - Analyze model architecture and parameters
+- **🧹 Data Sanitizer** - Clean and validate datasets
+- **📊 Data Preparation** - Process JSONL, split/merge datasets
+- **📚 RAG Architect** - Build retrieval-augmented generation pipelines
+- **💾 VRAM Calculator** - Estimate GPU memory requirements
 
-### 2. Setup Sequence
+### 🛠️ Developer Utilities
+- **📝 Snippet Lab** - Markdown-powered code snippet manager with dark editor
+- **🔄 Converter** - Format conversion tools (JSON ↔ CSV ↔ YAML)
+- **📁 File Manager** - Web-based file browser
+
+### 🎨 Design Features
+- **Dark Neon Theme** - Cyberpunk-inspired UI with pink/magenta accents
+- **Animated Interface** - Smooth transitions and micro-interactions
+- **Responsive Design** - Works on desktop and mobile
+- **Accessibility** - High contrast, keyboard navigation support
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+```bash
+Python 3.8+
+Node.js (optional, for asset building)
+```
+
+### Installation
+
 ```bash
 # Clone the repository
 git clone https://github.com/yourusername/xtools.git
 cd xtools
 
-# Initialize Virtual Environment
+# Create virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install Dependencies
+# Activate (Linux/Mac)
+source venv/bin/activate
+
+# Activate (Windows)
+venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
-```
 
-### 3. Execution
-```bash
+# Run the application
 python app.py
 ```
-> **Pro Tip:** Xtools automatically enables `HF_HUB_ENABLE_HF_TRANSFER=1` for maximum download speeds. Ensure you have a stable connection.
+
+### Access the Application
+
+Open your browser and navigate to: `http://localhost:5000`
 
 ---
 
-## 📖 STEP_BY_STEP_USAGE
+## 🎨 Design System
 
-### A. Downloading a Dataset
-1. Navigate to **Model Hub**.
-2. Enter the Repo ID (e.g., `yuecao0119/MMInstruct-GPT4V`).
-3. Click **START_SCAN**.
-4. Use **SMART_SELECT_JSONL** to pick data files.
-5. Enable **DISK_DIRECT_WRITE** and choose your local folder.
-6. Click **EXECUTE_TRANSFER**. If a file fails, Xtools will retry up to 3 times automatically.
-7. Click **VIEW_JSONL** in the log to inspect the data immediately.
+XTools uses a custom **Dark Neon** design system with carefully crafted colors and animations.
 
-### B. Analyzing Neural Weights
-1. Navigate to **Neural Inspector**.
-2. Enter the path to your `.safetensors` file.
-3. Click **INSPECT** to see the full layer map, shapes, and precision (fp16/bf16).
-4. Use the **Filter** bar to find specific weights (e.g., `q_proj`).
+### Color Palette
 
-### C. Cleaning a Dataset
-1. Navigate to **Dataset Sanitizer**.
-2. Load your `.csv` or `.jsonl.gz` file.
-3. Click **ANALYZE** to check for duplicates and nulls.
-4. Click **EXECUTE_DEDUPLICATION** to generate a clean version of your manifest.
+```
+Primary:    #CB3CFF (Pink/Magenta)
+Secondary:  #8951FF (Purple)
+Accent:     #21C3FC (Cyan)
+Background: #081028 (Deep Blue-Black)
+Surface:    #0A1330 (Elevated Dark)
+Text:       #FFFFFF / #AEB9E1
+```
+
+### Documentation
+
+- **[STYLE_GUIDE.md](STYLE_GUIDE.md)** - Quick reference for using styles
+- **[DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)** - Comprehensive design documentation
+
+### CSS Structure
+
+```
+static/
+├── css/
+│   ├── design-system.css    # Core tokens & utilities
+│   └── animations.css       # Animation library
+└── style.css                # Application styles
+```
 
 ---
 
-## 📄 LICENSE
+## 📁 Project Structure
 
-Distributed under the **MIT License**. See `LICENSE` for more information.
-
-
+```
+xtools/
+├── app.py                    # Main Flask application
+├── hf_handler.py            # HuggingFace integration
+├── requirements.txt         # Python dependencies
+├── README.md               # This file
+├── STYLE_GUIDE.md          # Style documentation
+├── DESIGN_SYSTEM.md        # Design system docs
+├── LICENSE                 # MIT License
+│
+├── static/                 # Static assets
+│   ├── css/
+│   │   ├── design-system.css
+│   │   └── animations.css
+│   ├── style.css
+│   └── js/                 # JavaScript files
+│
+├── templates/              # Jinja2 templates
+│   ├── index.html         # Dashboard
+│   ├── sidebar.html       # Navigation sidebar
+│   ├── pastebin.html      # Snippet Lab
+│   ├── view_paste.html    # Snippet viewer
+│   ├── hf_downloader.html # Model downloader
+│   ├── intelligence.html  # Model inspector
+│   ├── data_preparation.html
+│   ├── converter.html
+│   ├── file_manager.html
+│   └── ...
+│
+└── pastes/                # Snippet storage (auto-created)
+```
 
 ---
 
-**XTOOLS_V3 // BUILT_FOR_THE_AI_ERA**
+## 🔧 Configuration
+
+### Environment Variables
+
+```bash
+# HuggingFace
+export HF_TOKEN="your_token_here"  # For private models
+
+# Server
+export PORT=5000
+export DEBUG=False
+
+# Storage
+export PASTE_STORAGE_PATH="./pastes"
+```
+
+### Customization
+
+Edit `static/css/design-system.css` to customize the color palette:
+
+```css
+:root {
+    --pink-400: #CB3CFF;        /* Change primary color */
+    --neutral-800: #081028;     /* Change background */
+    /* ... more variables ... */
+}
+```
+
+---
+
+## 🖼️ Screenshots
+
+### Dashboard
+![Dashboard](static/screenshots/dashboard.png)
+
+### Snippet Lab (Dark Editor)
+![Snippet Lab](static/screenshots/snippet.png)
+
+### Model Hub
+![Model Hub](static/screenshots/modelhub.png)
+
+---
+
+## 🛠️ Development
+
+### Running in Development Mode
+
+```bash
+# Debug mode with auto-reload
+export FLASK_ENV=development
+export FLASK_DEBUG=1
+python app.py
+```
+
+### Adding New Tools
+
+1. Create route in `app.py`:
+
+```python
+@app.route('/new_tool')
+def new_tool():
+    return render_template('new_tool.html')
+```
+
+2. Create template in `templates/new_tool.html`:
+
+```html
+{% extends 'base.html' %}
+{% block content %}
+    <!-- Your tool UI here -->
+{% endblock %}
+```
+
+3. Add navigation link in `templates/sidebar.html`
+
+---
+
+## 📝 API Endpoints
+
+### Snippet Lab
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/save_paste` | Save new snippet |
+| GET | `/paste/<id>` | View snippet |
+| GET | `/download/<id>` | Download raw |
+
+### File Operations
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/split` | Split files |
+| POST | `/merge` | Merge files |
+| POST | `/convert` | Format conversion |
+
+### HuggingFace
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/download_hf` | Download model |
+| GET | `/download_progress` | Progress stream |
+
+---
+
+## 🧪 Testing
+
+```bash
+# Run tests
+pytest tests/
+
+# Check code style
+flake8 app.py
+black app.py --check
+```
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+Please read [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) before making UI changes.
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- **Flask** - Web framework
+- **Bootstrap 5** - Base components
+- **Font Awesome** - Icons
+- **EasyMDE** - Markdown editor
+- **Highlight.js** - Syntax highlighting
+
+---
+
+## 📞 Support
+
+- 📧 Email: support@xtools.dev
+- 💬 Discord: [Join our server](https://discord.gg/xtools)
+- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/xtools/issues)
+
+---
+
+<div align="center">
+
+**[⬆ Back to Top](#xtools-)**
+
+Made with 💜 and ☕ by the XTools Team
+
+</div>

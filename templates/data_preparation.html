@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Preparation - Xtools</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <style>
+        .prep-card {
+            min-height: 600px;
+        }
+        .nav-tabs-brutal {
+            border: none;
+            display: flex;
+            gap: 10px;
+            margin-bottom: var(--space-md);
+            flex-wrap: wrap;
+        }
+        .nav-tabs-brutal .nav-link {
+            border: var(--border-thickness) solid var(--color-border);
+            color: var(--color-text-muted);
+            font-family: var(--font-heading);
+            font-weight: 800;
+            text-transform: uppercase;
+            padding: 12px 20px;
+            cursor: pointer;
+            background: var(--color-bg-surface);
+        }
+        .nav-tabs-brutal .nav-link:hover {
+            border-color: var(--color-primary);
+            transform: translate(-2px, -2px);
+            box-shadow: 4px 4px 0px 0px var(--color-primary);
+        }
+        .nav-tabs-brutal .nav-link.active {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+            box-shadow: 4px 4px 0px 0px var(--color-accent);
+            transform: translate(-2px, -2px);
+        }
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+        .stat-card {
+            border-left: 4px solid var(--color-primary);
+            background: #111;
+            padding: var(--space-md);
+            margin-bottom: var(--space-sm);
+        }
+        .validation-item {
+            padding: 10px 15px;
+            border-left: 4px solid;
+            margin-bottom: 8px;
+            background: #111;
+        }
+        .validation-success { border-left-color: var(--color-accent); }
+        .validation-error { border-left-color: #ff3d00; }
+        .validation-warning { border-left-color: #ffaa00; }
+        .token-preview {
+            font-family: var(--font-body);
+            font-size: 0.75rem;
+            background: #000;
+            border: 1px solid var(--color-border);
+            padding: 10px;
+            max-height: 200px;
+            overflow: auto;
+        }
+        .token-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            margin: 2px;
+            background: var(--color-primary);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .progress-log {
+            background: #000;
+            border: 1px solid var(--color-border);
+            padding: var(--space-md);
+            font-family: var(--font-body);
+            font-size: 0.8rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            margin-bottom: 4px;
+            padding: 2px 0;
+        }
+        .log-success { color: var(--color-accent); }
+        .log-error { color: #ff3d00; }
+        .log-info { color: var(--color-primary); }
+        .log-warning { color: #ffaa00; }
+    </style>
+</head>
+<body>
+
+    {% set active_page = 'data_prep' %}
+    {% include 'sidebar.html' %}
+
+    <div class="main-content">
+        <div class="mb-5">
+            <h1 class="text-uppercase fw-900" style="font-size: 3rem; letter-spacing: -2px;">
+                Data Preparation
+            </h1>
+            <div class="d-flex align-items-center gap-3">
+                <p class="subtitle m-0">DATA_PREPROCESSING_PIPELINE // CLEAN_TOKENIZE_VALIDATE</p>
+                <div class="flex-grow-1 border-bottom border-primary border-2 opacity-25"></div>
+            </div>
+            <p class="text-muted small mt-2 fw-bold" style="max-width: 700px;">
+                Industrial-grade data preparation engine. Clean noise and inconsistencies, split datasets for training, tokenize text using model-specific tokenizers, and validate JSONL integrity before model training.
+            </p>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs-brutal">
+            <button class="nav-link active" onclick="switchTab('cleaning')">
+                <i class="fa-solid fa-broom me-2"></i>Data Cleaning
+            </button>
+            <button class="nav-link" onclick="switchTab('splitting')">
+                <i class="fa-solid fa-scissors me-2"></i>Data Splitting
+            </button>
+            <button class="nav-link" onclick="switchTab('tokenization')">
+                <i class="fa-solid fa-code me-2"></i>Tokenization
+            </button>
+            <button class="nav-link" onclick="switchTab('validation')">
+                <i class="fa-solid fa-shield-check me-2"></i>Data Validation
+            </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="prep-card">
+            
+            <!-- 1. Data Cleaning Tab -->
+            <div id="tab-cleaning" class="tab-pane">
+                <div class="app-card">
+                    <h4 class="mb-4 text-primary"><span class="text-white">01_</span> DATA_CLEANING_ENGINE</h4>
+                    <p class="text-muted mb-4" style="font-size: 0.85rem;">
+                        Membersihkan data dari noise dan inkonsistensi untuk meningkatkan kualitas training. Mendukung deteksi duplikat, penanganan nilai null, normalisasi teks, dan filter karakter aneh.
+                    </p>
+
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Source Dataset Path</label>
+                            <div class="d-flex gap-2 mb-3">
+                                <input type="text" id="cleanInputPath" class="form-control" placeholder="ENTER_JSONL_OR_CSV_PATH">
+                                <button class="btn btn-primary" onclick="openBrowser('cleanInputPath')"><i class="fa-solid fa-folder-open"></i></button>
+                            </div>
+
+                            <label class="form-label">Cleaning Operations</label>
+                            <div class="p-3 bg-black border border-secondary mb-3">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="cleanDuplicates" checked>
+                                    <label class="form-check-label" for="cleanDuplicates">Remove Duplicate Records</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="cleanNulls" checked>
+                                    <label class="form-check-label" for="cleanNulls">Handle Null/Empty Values</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="cleanText" checked>
+                                    <label class="form-check-label" for="cleanText">Normalize Text (trim, lowercase)</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="cleanSpecialChars">
+                                    <label class="form-check-label" for="cleanSpecialChars">Remove Special Characters</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="cleanMinLength">
+                                    <label class="form-check-label" for="cleanMinLength">Filter by Minimum Length</label>
+                                </div>
+                                <div class="input-group input-group-sm mt-2" id="minLengthGroup" style="display:none;">
+                                    <span class="input-group-text bg-black border-secondary">Min Length</span>
+                                    <input type="number" id="minLengthValue" class="form-control" value="10" min="1">
+                                </div>
+                            </div>
+
+                            <label class="form-label">Output Path (Optional)</label>
+                            <div class="d-flex gap-2">
+                                <input type="text" id="cleanOutputPath" class="form-control" placeholder="LEAVE_EMPTY_FOR_AUTO_SUFFIX">
+                                <button class="btn btn-primary" onclick="openBrowser('cleanOutputPath')"><i class="fa-solid fa-folder-tree"></i></button>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="m-0 text-uppercase"><i class="fa-solid fa-terminal me-2 text-primary"></i>Cleaning Log</h5>
+                                <span id="cleanStatus" class="badge bg-secondary">READY</span>
+                            </div>
+                            <div class="progress-log" id="cleanLog">
+                                <div class="log-entry log-info">[SYSTEM] Data Cleaning Engine Ready...</div>
+                                <div class="log-entry log-info">[SYSTEM] Waiting for input file...</div>
+                            </div>
+                            
+                            <div id="cleanStats" class="mt-3 d-none">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <div class="stat-card">
+                                            <label class="form-label" style="font-size: 0.6rem;">Initial Records</label>
+                                            <div class="h4 fw-900 m-0" id="cleanInitialCount">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="stat-card" style="border-left-color: var(--color-accent);">
+                                            <label class="form-label" style="font-size: 0.6rem;">Final Records</label>
+                                            <div class="h4 fw-900 m-0 text-success" id="cleanFinalCount">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="stat-card" style="border-left-color: #ff3d00;">
+                                            <label class="form-label" style="font-size: 0.6rem;">Removed</label>
+                                            <div class="h4 fw-900 m-0 text-danger" id="cleanRemovedCount">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="stat-card" style="border-left-color: #0099ff;">
+                                            <label class="form-label" style="font-size: 0.6rem;">Reduction</label>
+                                            <div class="h4 fw-900 m-0 text-info" id="cleanReduction">0%</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary w-100 mt-3 py-3" onclick="executeCleaning()">
+                                <i class="fa-solid fa-play me-2"></i> EXECUTE_CLEANING
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Data Splitting Tab -->
+            <div id="tab-splitting" class="tab-pane d-none">
+                <div class="app-card">
+                    <h4 class="mb-4 text-primary"><span class="text-white">02_</span> DATA_SPLITTING_ENGINE</h4>
+                    <p class="text-muted mb-4" style="font-size: 0.85rem;">
+                        Membagi data menjadi training dan validation set untuk evaluasi model. Mendukung split ratio, stratified sampling, dan random seed untuk reproducibility.
+                    </p>
+
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Source Dataset Path</label>
+                            <div class="d-flex gap-2 mb-3">
+                                <input type="text" id="splitInputPath" class="form-control" placeholder="ENTER_JSONL_PATH">
+                                <button class="btn btn-primary" onclick="openBrowser('splitInputPath')"><i class="fa-solid fa-folder-open"></i></button>
+                            </div>
+
+                            <label class="form-label">Split Configuration</label>
+                            <div class="p-3 bg-black border border-secondary mb-3">
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <label class="small text-muted mb-1">Train Ratio (%)</label>
+                                        <input type="range" id="trainRatio" class="form-range" min="50" max="95" value="80" oninput="updateSplitRatio()">
+                                        <div class="d-flex justify-content-between small">
+                                            <span id="trainRatioDisplay">80%</span>
+                                            <span id="valRatioDisplay">20%</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="small text-muted mb-1">Random Seed (for reproducibility)</label>
+                                        <input type="number" id="randomSeed" class="form-control" value="42">
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="shuffleData" checked>
+                                            <label class="form-check-label" for="shuffleData">Shuffle before splitting</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <label class="form-label">Output Directory</label>
+                            <div class="d-flex gap-2">
+                                <input type="text" id="splitOutputDir" class="form-control" placeholder="SELECT_OUTPUT_DIRECTORY">
+                                <button class="btn btn-primary" onclick="openBrowser('splitOutputDir')"><i class="fa-solid fa-folder-tree"></i></button>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="m-0 text-uppercase"><i class="fa-solid fa-terminal me-2 text-primary"></i>Splitting Log</h5>
+                                <span id="splitStatus" class="badge bg-secondary">READY</span>
+                            </div>
+                            <div class="progress-log" id="splitLog">
+                                <div class="log-entry log-info">[SYSTEM] Data Splitting Engine Ready...</div>
+                                <div class="log-entry log-info">[SYSTEM] Waiting for input file...</div>
+                            </div>
+
+                            <div id="splitStats" class="mt-3 d-none">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <div class="stat-card" style="border-left-color: var(--color-primary);">
+                                            <label class="form-label" style="font-size: 0.6rem;">Total Records</label>
+                                            <div class="h4 fw-900 m-0" id="splitTotalCount">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="stat-card" style="border-left-color: var(--color-accent);">
+                                            <label class="form-label" style="font-size: 0.6rem;">Train Set</label>
+                                            <div class="h4 fw-900 m-0 text-success" id="splitTrainCount">0</div>
+                                            <small class="text-muted" id="splitTrainPercent">80%</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="stat-card" style="border-left-color: #ffaa00;">
+                                            <label class="form-label" style="font-size: 0.6rem;">Validation Set</label>
+                                            <div class="h4 fw-900 m-0 text-warning" id="splitValCount">0</div>
+                                            <small class="text-muted" id="splitValPercent">20%</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-3 p-3 bg-black border border-secondary">
+                                    <label class="form-label" style="font-size: 0.6rem;">Output Files</label>
+                                    <div class="small text-success" id="trainOutputFile">train.jsonl</div>
+                                    <div class="small text-warning" id="valOutputFile">validation.jsonl</div>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary w-100 mt-3 py-3" onclick="executeSplitting()">
+                                <i class="fa-solid fa-play me-2"></i> EXECUTE_SPLITTING
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Tokenization Tab -->
+            <div id="tab-tokenization" class="tab-pane d-none">
+                <div class="app-card">
+                    <h4 class="mb-4 text-primary"><span class="text-white">03_</span> TOKENIZATION_ENGINE</h4>
+                    <p class="text-muted mb-4" style="font-size: 0.85rem;">
+                        Mengkonversikan Teks ke Token menggunakan tokenizer dari model base. Mendukung berbagai model HuggingFace untuk analisis token count dan sequence length.
+                    </p>
+
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Source JSONL Path</label>
+                            <div class="d-flex gap-2 mb-3">
+                                <input type="text" id="tokenInputPath" class="form-control" placeholder="ENTER_JSONL_PATH">
+                                <button class="btn btn-primary" onclick="openBrowser('tokenInputPath')"><i class="fa-solid fa-folder-open"></i></button>
+                            </div>
+
+                            <label class="form-label">Model Base / Tokenizer</label>
+                            <div class="input-group mb-3">
+                                <span class="input-group-text bg-black border-secondary"><i class="fa-solid fa-robot"></i></span>
+                                <input type="text" id="modelBase" class="form-control" placeholder="e.g., Qwen/Qwen2-7B-Instruct" value="Qwen/Qwen2-7B-Instruct">
+                            </div>
+
+                            <label class="form-label">Text Field to Tokenize</label>
+                            <input type="text" id="textField" class="form-control mb-3" placeholder="e.g., text, content, instruction" value="text">
+
+                            <label class="form-label">Options</label>
+                            <div class="p-3 bg-black border border-secondary mb-3">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="calcMaxLength" checked>
+                                    <label class="form-check-label" for="calcMaxLength">Calculate Max Sequence Length</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="calcAvgLength" checked>
+                                    <label class="form-check-label" for="calcAvgLength">Calculate Average Token Count</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="previewTokens">
+                                    <label class="form-check-label" for="previewTokens">Show Token Preview (first 5 records)</label>
+                                </div>
+                            </div>
+
+                            <label class="form-label">Max Records to Process (0 = all)</label>
+                            <input type="number" id="maxRecords" class="form-control" value="1000" min="0">
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="m-0 text-uppercase"><i class="fa-solid fa-terminal me-2 text-primary"></i>Tokenization Log</h5>
+                                <span id="tokenStatus" class="badge bg-secondary">READY</span>
+                            </div>
+                            <div class="progress-log" id="tokenLog">
+                                <div class="log-entry log-info">[SYSTEM] Tokenization Engine Ready...</div>
+                                <div class="log-entry log-info">[SYSTEM] Default tokenizer: Qwen/Qwen2-7B-Instruct</div>
+                            </div>
+
+                            <div id="tokenStats" class="mt-3 d-none">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <div class="stat-card">
+                                            <label class="form-label" style="font-size: 0.6rem;">Records Processed</label>
+                                            <div class="h4 fw-900 m-0" id="tokenRecordCount">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="stat-card" style="border-left-color: #ff3d00;">
+                                            <label class="form-label" style="font-size: 0.6rem;">Max Tokens</label>
+                                            <div class="h4 fw-900 m-0 text-danger" id="tokenMaxCount">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="stat-card" style="border-left-color: var(--color-accent);">
+                                            <label class="form-label" style="font-size: 0.6rem;">Avg Tokens</label>
+                                            <div class="h4 fw-900 m-0 text-success" id="tokenAvgCount">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="stat-card" style="border-left-color: #0099ff;">
+                                            <label class="form-label" style="font-size: 0.6rem;">Total Tokens</label>
+                                            <div class="h4 fw-900 m-0 text-info" id="tokenTotalCount">0</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="tokenPreviewSection" class="mt-3 d-none">
+                                    <label class="form-label">Token Preview</label>
+                                    <div class="token-preview" id="tokenPreview">
+                                        <!-- Token badges will be inserted here -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary w-100 mt-3 py-3" onclick="executeTokenization()">
+                                <i class="fa-solid fa-play me-2"></i> EXECUTE_TOKENIZATION
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Data Validation Tab -->
+            <div id="tab-validation" class="tab-pane d-none">
+                <div class="app-card">
+                    <h4 class="mb-4 text-primary"><span class="text-white">04_</span> DATA_VALIDATION_ENGINE</h4>
+                    <p class="text-muted mb-4" style="font-size: 0.85rem;">
+                        Memastikan format JSONL valid dan konsisten sebelum training. Memvalidasi struktur JSON, field yang dibutuhkan, tipe data, dan deteksi error parsing.
+                    </p>
+
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Source JSONL Path</label>
+                            <div class="d-flex gap-2 mb-3">
+                                <input type="text" id="validateInputPath" class="form-control" placeholder="ENTER_JSONL_PATH">
+                                <button class="btn btn-primary" onclick="openBrowser('validateInputPath')"><i class="fa-solid fa-folder-open"></i></button>
+                            </div>
+
+                            <label class="form-label">Validation Rules</label>
+                            <div class="p-3 bg-black border border-secondary mb-3">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="validateJson" checked>
+                                    <label class="form-check-label" for="validateJson">JSON Syntax Validation</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="validateFields" checked>
+                                    <label class="form-check-label" for="validateFields">Check Required Fields</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="validateTypes">
+                                    <label class="form-check-label" for="validateTypes">Validate Data Types</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="validateEncoding" checked>
+                                    <label class="form-check-label" for="validateEncoding">UTF-8 Encoding Check</label>
+                                </div>
+                            </div>
+
+                            <label class="form-label">Required Fields (comma-separated)</label>
+                            <input type="text" id="requiredFields" class="form-control mb-3" placeholder="e.g., instruction, input, output" value="text">
+
+                            <label class="form-label">Max Records to Validate (0 = all)</label>
+                            <input type="number" id="validateMaxRecords" class="form-control" value="0" min="0">
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="m-0 text-uppercase"><i class="fa-solid fa-terminal me-2 text-primary"></i>Validation Report</h5>
+                                <span id="validateStatus" class="badge bg-secondary">READY</span>
+                            </div>
+                            <div class="progress-log" id="validateLog">
+                                <div class="log-entry log-info">[SYSTEM] Data Validation Engine Ready...</div>
+                                <div class="log-entry log-info">[SYSTEM] Waiting for input file...</div>
+                            </div>
+
+                            <div id="validateStats" class="mt-3 d-none">
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <div class="stat-card">
+                                            <label class="form-label" style="font-size: 0.6rem;">Total Records</label>
+                                            <div class="h4 fw-900 m-0" id="validateTotalCount">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="stat-card" style="border-left-color: var(--color-accent);">
+                                            <label class="form-label" style="font-size: 0.6rem;">Valid Records</label>
+                                            <div class="h4 fw-900 m-0 text-success" id="validateValidCount">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="stat-card" style="border-left-color: #ff3d00;">
+                                            <label class="form-label" style="font-size: 0.6rem;">Invalid Records</label>
+                                            <div class="h4 fw-900 m-0 text-danger" id="validateInvalidCount">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="stat-card" style="border-left-color: #ffaa00;">
+                                            <label class="form-label" style="font-size: 0.6rem;">Success Rate</label>
+                                            <div class="h4 fw-900 m-0 text-warning" id="validateSuccessRate">0%</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="validationErrors" class="d-none">
+                                    <label class="form-label">Error Details</label>
+                                    <div style="max-height: 200px; overflow-y: auto;" id="errorList">
+                                        <!-- Error items will be inserted here -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary w-100 mt-3 py-3" onclick="executeValidation()">
+                                <i class="fa-solid fa-play me-2"></i> EXECUTE_VALIDATION
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- File Browser Modal -->
+    <div class="modal fade" id="fileBrowserModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">XTOOLS_FS_BROWSER</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="d-flex gap-2 mb-4">
+                        <button class="btn btn-primary" onclick="browseTo('::DRIVES::')"><i class="fa-solid fa-hard-drive"></i></button>
+                        <input type="text" id="modalCurrentPath" readonly class="form-control">
+                        <button class="btn btn-primary" onclick="confirmSelection()">SELECT</button>
+                    </div>
+                    <div id="modalFileList" class="list-group list-group-flush border" style="max-height: 400px; overflow-y: auto;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentTab = 'cleaning';
+        let currentTargetInput = '';
+        let fileBrowser;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fileBrowser = new bootstrap.Modal(document.getElementById('fileBrowserModal'));
+            
+            // Toggle min length input
+            document.getElementById('cleanMinLength').addEventListener('change', function() {
+                document.getElementById('minLengthGroup').style.display = this.checked ? 'flex' : 'none';
+            });
+        });
+
+        function switchTab(tabName) {
+            currentTab = tabName;
+            
+            // Update nav buttons
+            document.querySelectorAll('.nav-tabs-brutal .nav-link').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.closest('.nav-link').classList.add('active');
+            
+            // Show/hide tab panes
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.add('d-none');
+            });
+            document.getElementById('tab-' + tabName).classList.remove('d-none');
+        }
+
+        function updateSplitRatio() {
+            const trainRatio = document.getElementById('trainRatio').value;
+            document.getElementById('trainRatioDisplay').textContent = trainRatio + '%';
+            document.getElementById('valRatioDisplay').textContent = (100 - trainRatio) + '%';
+        }
+
+        function logTo(elementId, message, type = 'info') {
+            const log = document.getElementById(elementId);
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            const time = new Date().toLocaleTimeString();
+            entry.textContent = `[${time}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function clearLog(elementId) {
+            document.getElementById(elementId).innerHTML = '';
+        }
+
+        // File Browser Functions
+        async function openBrowser(inputId) {
+            currentTargetInput = inputId;
+            fileBrowser.show();
+            await browseTo('');
+        }
+
+        async function browseTo(path) {
+            const list = document.getElementById('modalFileList');
+            list.innerHTML = '<div class="p-4 text-center text-muted fw-bold">SYNCHRONIZING_STORAGE...</div>';
+            try {
+                const response = await fetch('/browse', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ path: path })
+                });
+                const data = await response.json();
+                document.getElementById('modalCurrentPath').value = data.current_path;
+                list.innerHTML = '';
+
+                if (data.parent_path && data.current_path !== 'My PC') {
+                    const item = document.createElement('a');
+                    item.className = 'list-group-item list-group-item-action py-3';
+                    item.innerHTML = '<i class="fa-solid fa-arrow-up me-3"></i> UP_LEVEL';
+                    item.onclick = () => browseTo(data.parent_path);
+                    list.appendChild(item);
+                }
+
+                data.dirs.forEach(dir => {
+                    const item = document.createElement('a');
+                    item.className = 'list-group-item list-group-item-action py-3';
+                    item.innerHTML = `<i class="fa-solid fa-folder text-primary me-3"></i> ${dir}`;
+                    item.onclick = () => {
+                        const sep = data.current_path.endsWith('\\') ? '' : '\\';
+                        browseTo(data.current_path === 'My PC' ? dir : data.current_path + sep + dir);
+                    };
+                    list.appendChild(item);
+                });
+
+                data.files.forEach(file => {
+                    const item = document.createElement('a');
+                    item.className = 'list-group-item list-group-item-action py-3';
+                    item.innerHTML = `<i class="fa-solid fa-file-code text-muted me-3"></i> ${file}`;
+                    item.onclick = () => {
+                        const sep = data.current_path.endsWith('\\') ? '' : '\\';
+                        document.getElementById(currentTargetInput).value = data.current_path + sep + file;
+                        fileBrowser.hide();
+                    };
+                    list.appendChild(item);
+                });
+            } catch (e) { list.innerHTML = `<div class="p-4 text-danger">${e.message}</div>`; }
+        }
+
+        function confirmSelection() {
+            const path = document.getElementById('modalCurrentPath').value;
+            if (path !== 'My PC') {
+                document.getElementById(currentTargetInput).value = path;
+                fileBrowser.hide();
+            }
+        }
+
+        // Data Cleaning Function
+        async function executeCleaning() {
+            const inputPath = document.getElementById('cleanInputPath').value;
+            if (!inputPath) {
+                alert('Please select an input file');
+                return;
+            }
+
+            clearLog('cleanLog');
+            logTo('cleanLog', 'Starting data cleaning process...', 'info');
+            document.getElementById('cleanStatus').className = 'badge bg-warning';
+            document.getElementById('cleanStatus').textContent = 'PROCESSING';
+            document.getElementById('cleanStats').classList.add('d-none');
+
+            const options = {
+                remove_duplicates: document.getElementById('cleanDuplicates').checked,
+                handle_nulls: document.getElementById('cleanNulls').checked,
+                normalize_text: document.getElementById('cleanText').checked,
+                remove_special_chars: document.getElementById('cleanSpecialChars').checked,
+                filter_min_length: document.getElementById('cleanMinLength').checked,
+                min_length: parseInt(document.getElementById('minLengthValue').value) || 10
+            };
+
+            try {
+                const response = await fetch('/api/prep/clean', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        input_path: inputPath,
+                        output_path: document.getElementById('cleanOutputPath').value,
+                        options: options
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    logTo('cleanLog', `Error: ${data.error}`, 'error');
+                    document.getElementById('cleanStatus').className = 'badge bg-danger';
+                    document.getElementById('cleanStatus').textContent = 'ERROR';
+                    return;
+                }
+
+                logTo('cleanLog', `Processed ${data.initial_count} records`, 'info');
+                logTo('cleanLog', `Removed ${data.removed_count} records`, 'success');
+                logTo('cleanLog', `Final count: ${data.final_count} records`, 'success');
+                logTo('cleanLog', `Output saved to: ${data.output_path}`, 'success');
+
+                document.getElementById('cleanInitialCount').textContent = data.initial_count.toLocaleString();
+                document.getElementById('cleanFinalCount').textContent = data.final_count.toLocaleString();
+                document.getElementById('cleanRemovedCount').textContent = data.removed_count.toLocaleString();
+                document.getElementById('cleanReduction').textContent = data.reduction_percent + '%';
+                document.getElementById('cleanStats').classList.remove('d-none');
+                document.getElementById('cleanStatus').className = 'badge bg-success';
+                document.getElementById('cleanStatus').textContent = 'COMPLETED';
+
+            } catch (e) {
+                logTo('cleanLog', `Error: ${e.message}`, 'error');
+                document.getElementById('cleanStatus').className = 'badge bg-danger';
+                document.getElementById('cleanStatus').textContent = 'ERROR';
+            }
+        }
+
+        // Data Splitting Function
+        async function executeSplitting() {
+            const inputPath = document.getElementById('splitInputPath').value;
+            const outputDir = document.getElementById('splitOutputDir').value;
+            
+            if (!inputPath) {
+                alert('Please select an input file');
+                return;
+            }
+
+            clearLog('splitLog');
+            logTo('splitLog', 'Starting data splitting process...', 'info');
+            document.getElementById('splitStatus').className = 'badge bg-warning';
+            document.getElementById('splitStatus').textContent = 'PROCESSING';
+            document.getElementById('splitStats').classList.add('d-none');
+
+            try {
+                const response = await fetch('/api/prep/split', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        input_path: inputPath,
+                        output_dir: outputDir,
+                        train_ratio: parseInt(document.getElementById('trainRatio').value) / 100,
+                        random_seed: parseInt(document.getElementById('randomSeed').value),
+                        shuffle: document.getElementById('shuffleData').checked
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    logTo('splitLog', `Error: ${data.error}`, 'error');
+                    document.getElementById('splitStatus').className = 'badge bg-danger';
+                    document.getElementById('splitStatus').textContent = 'ERROR';
+                    return;
+                }
+
+                logTo('splitLog', `Total records: ${data.total_count}`, 'info');
+                logTo('splitLog', `Train set: ${data.train_count} records (${data.train_percent}%)`, 'success');
+                logTo('splitLog', `Validation set: ${data.val_count} records (${data.val_percent}%)`, 'warning');
+                logTo('splitLog', `Train file: ${data.train_file}`, 'success');
+                logTo('splitLog', `Validation file: ${data.val_file}`, 'warning');
+
+                document.getElementById('splitTotalCount').textContent = data.total_count.toLocaleString();
+                document.getElementById('splitTrainCount').textContent = data.train_count.toLocaleString();
+                document.getElementById('splitTrainPercent').textContent = data.train_percent + '%';
+                document.getElementById('splitValCount').textContent = data.val_count.toLocaleString();
+                document.getElementById('splitValPercent').textContent = data.val_percent + '%';
+                document.getElementById('trainOutputFile').textContent = data.train_file;
+                document.getElementById('valOutputFile').textContent = data.val_file;
+                document.getElementById('splitStats').classList.remove('d-none');
+                document.getElementById('splitStatus').className = 'badge bg-success';
+                document.getElementById('splitStatus').textContent = 'COMPLETED';
+
+            } catch (e) {
+                logTo('splitLog', `Error: ${e.message}`, 'error');
+                document.getElementById('splitStatus').className = 'badge bg-danger';
+                document.getElementById('splitStatus').textContent = 'ERROR';
+            }
+        }
+
+        // Tokenization Function
+        async function executeTokenization() {
+            const inputPath = document.getElementById('tokenInputPath').value;
+            if (!inputPath) {
+                alert('Please select an input file');
+                return;
+            }
+
+            clearLog('tokenLog');
+            logTo('tokenLog', 'Loading tokenizer...', 'info');
+            document.getElementById('tokenStatus').className = 'badge bg-warning';
+            document.getElementById('tokenStatus').textContent = 'PROCESSING';
+            document.getElementById('tokenStats').classList.add('d-none');
+
+            try {
+                const response = await fetch('/api/prep/tokenize', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        input_path: inputPath,
+                        model_base: document.getElementById('modelBase').value,
+                        text_field: document.getElementById('textField').value,
+                        calc_max_length: document.getElementById('calcMaxLength').checked,
+                        calc_avg_length: document.getElementById('calcAvgLength').checked,
+                        preview_tokens: document.getElementById('previewTokens').checked,
+                        max_records: parseInt(document.getElementById('maxRecords').value) || 1000
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    logTo('tokenLog', `Error: ${data.error}`, 'error');
+                    document.getElementById('tokenStatus').className = 'badge bg-danger';
+                    document.getElementById('tokenStatus').textContent = 'ERROR';
+                    return;
+                }
+
+                logTo('tokenLog', `Tokenizer loaded: ${data.tokenizer}`, 'success');
+                logTo('tokenLog', `Processed ${data.record_count} records`, 'info');
+                logTo('tokenLog', `Max tokens: ${data.max_tokens}`, 'info');
+                logTo('tokenLog', `Avg tokens: ${data.avg_tokens}`, 'info');
+                logTo('tokenLog', `Total tokens: ${data.total_tokens.toLocaleString()}`, 'success');
+
+                document.getElementById('tokenRecordCount').textContent = data.record_count.toLocaleString();
+                document.getElementById('tokenMaxCount').textContent = data.max_tokens.toLocaleString();
+                document.getElementById('tokenAvgCount').textContent = data.avg_tokens;
+                document.getElementById('tokenTotalCount').textContent = data.total_tokens.toLocaleString();
+
+                if (data.preview && data.preview.length > 0) {
+                    const previewDiv = document.getElementById('tokenPreview');
+                    previewDiv.innerHTML = '';
+                    data.preview.forEach((tokens, idx) => {
+                        const recordDiv = document.createElement('div');
+                        recordDiv.className = 'mb-2';
+                        recordDiv.innerHTML = `<small class="text-muted">Record ${idx + 1}:</small><br>`;
+                        tokens.forEach(token => {
+                            const badge = document.createElement('span');
+                            badge.className = 'token-badge';
+                            badge.textContent = token;
+                            recordDiv.appendChild(badge);
+                        });
+                        previewDiv.appendChild(recordDiv);
+                    });
+                    document.getElementById('tokenPreviewSection').classList.remove('d-none');
+                }
+
+                document.getElementById('tokenStats').classList.remove('d-none');
+                document.getElementById('tokenStatus').className = 'badge bg-success';
+                document.getElementById('tokenStatus').textContent = 'COMPLETED';
+
+            } catch (e) {
+                logTo('tokenLog', `Error: ${e.message}`, 'error');
+                document.getElementById('tokenStatus').className = 'badge bg-danger';
+                document.getElementById('tokenStatus').textContent = 'ERROR';
+            }
+        }
+
+        // Data Validation Function
+        async function executeValidation() {
+            const inputPath = document.getElementById('validateInputPath').value;
+            if (!inputPath) {
+                alert('Please select an input file');
+                return;
+            }
+
+            clearLog('validateLog');
+            logTo('validateLog', 'Starting data validation...', 'info');
+            document.getElementById('validateStatus').className = 'badge bg-warning';
+            document.getElementById('validateStatus').textContent = 'PROCESSING';
+            document.getElementById('validateStats').classList.add('d-none');
+
+            const requiredFields = document.getElementById('requiredFields').value
+                .split(',')
+                .map(f => f.trim())
+                .filter(f => f);
+
+            try {
+                const response = await fetch('/api/prep/validate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        input_path: inputPath,
+                        validate_json: document.getElementById('validateJson').checked,
+                        validate_fields: document.getElementById('validateFields').checked,
+                        validate_types: document.getElementById('validateTypes').checked,
+                        validate_encoding: document.getElementById('validateEncoding').checked,
+                        required_fields: requiredFields,
+                        max_records: parseInt(document.getElementById('validateMaxRecords').value) || 0
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    logTo('validateLog', `Error: ${data.error}`, 'error');
+                    document.getElementById('validateStatus').className = 'badge bg-danger';
+                    document.getElementById('validateStatus').textContent = 'ERROR';
+                    return;
+                }
+
+                logTo('validateLog', `Total records checked: ${data.total_count}`, 'info');
+                logTo('validateLog', `Valid records: ${data.valid_count}`, 'success');
+                logTo('validateLog', `Invalid records: ${data.invalid_count}`, data.invalid_count > 0 ? 'warning' : 'success');
+                logTo('validateLog', `Success rate: ${data.success_rate}%`, data.success_rate >= 95 ? 'success' : 'warning');
+
+                if (data.errors && data.errors.length > 0) {
+                    logTo('validateLog', `Found ${data.errors.length} error types`, 'warning');
+                }
+
+                document.getElementById('validateTotalCount').textContent = data.total_count.toLocaleString();
+                document.getElementById('validateValidCount').textContent = data.valid_count.toLocaleString();
+                document.getElementById('validateInvalidCount').textContent = data.invalid_count.toLocaleString();
+                document.getElementById('validateSuccessRate').textContent = data.success_rate + '%';
+
+                // Show errors
+                const errorList = document.getElementById('errorList');
+                errorList.innerHTML = '';
+                if (data.errors && data.errors.length > 0) {
+                    data.errors.forEach(err => {
+                        const item = document.createElement('div');
+                        item.className = 'validation-item validation-error small';
+                        item.innerHTML = `<strong>Line ${err.line}:</strong> ${err.message}`;
+                        errorList.appendChild(item);
+                    });
+                    document.getElementById('validationErrors').classList.remove('d-none');
+                } else {
+                    document.getElementById('validationErrors').classList.add('d-none');
+                }
+
+                document.getElementById('validateStats').classList.remove('d-none');
+                
+                // Set status badge based on success rate
+                if (data.success_rate >= 95) {
+                    document.getElementById('validateStatus').className = 'badge bg-success';
+                } else if (data.success_rate >= 80) {
+                    document.getElementById('validateStatus').className = 'badge bg-warning';
+                } else {
+                    document.getElementById('validateStatus').className = 'badge bg-danger';
+                }
+                document.getElementById('validateStatus').textContent = 'COMPLETED';
+
+            } catch (e) {
+                logTo('validateLog', `Error: ${e.message}`, 'error');
+                document.getElementById('validateStatus').className = 'badge bg-danger';
+                document.getElementById('validateStatus').textContent = 'ERROR';
+            }
+        }
+    </script>
+</body>
+</html>

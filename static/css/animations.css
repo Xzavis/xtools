@@ -1,0 +1,653 @@
+/**
+ * XTOOLS ANIMATIONS
+ * =================
+ * 
+ * Advanced animations and micro-interactions
+ * Import after design-system.css
+ */
+
+/* ============================================
+   1. ENTRANCE ANIMATIONS
+   ============================================ */
+
+/* Staggered entrance for lists */
+.stagger-children > * {
+    opacity: 0;
+    animation: fadeInUp 0.5s var(--ease-out) forwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 50ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 100ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 150ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 250ms; }
+.stagger-children > *:nth-child(7) { animation-delay: 300ms; }
+.stagger-children > *:nth-child(8) { animation-delay: 350ms; }
+.stagger-children > *:nth-child(9) { animation-delay: 400ms; }
+.stagger-children > *:nth-child(10) { animation-delay: 450ms; }
+
+/* Slide In variants */
+.slide-in-up {
+    animation: slideInUp 0.4s var(--ease-out) forwards;
+}
+
+.slide-in-down {
+    animation: slideInDown 0.4s var(--ease-out) forwards;
+}
+
+.slide-in-left {
+    animation: slideInLeft 0.4s var(--ease-out) forwards;
+}
+
+.slide-in-right {
+    animation: slideInRight 0.4s var(--ease-out) forwards;
+}
+
+/* ============================================
+   2. HOVER EFFECTS
+   ============================================ */
+
+/* Magnetic hover effect base */
+.magnetic-hover {
+    transition: transform 0.3s var(--ease-spring);
+}
+
+.magnetic-hover:hover {
+    transform: scale(1.02);
+}
+
+/* Glow hover effect */
+.glow-hover {
+    transition: box-shadow 0.3s var(--ease-out), border-color 0.3s var(--ease-out);
+}
+
+.glow-hover:hover {
+    box-shadow: 0 0 30px rgba(203, 60, 255, 0.4);
+    border-color: rgba(203, 60, 255, 0.6);
+}
+
+/* Underline animation */
+.underline-hover {
+    position: relative;
+}
+
+.underline-hover::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--gradient-primary);
+    transition: width 0.3s var(--ease-out);
+}
+
+.underline-hover:hover::after {
+    width: 100%;
+}
+
+/* Scale hover effect */
+.scale-hover {
+    transition: transform 0.2s var(--ease-spring);
+}
+
+.scale-hover:hover {
+    transform: scale(1.05);
+}
+
+.scale-hover:active {
+    transform: scale(0.98);
+}
+
+/* Rotate on hover */
+.rotate-hover {
+    transition: transform 0.3s var(--ease-out);
+}
+
+.rotate-hover:hover {
+    transform: rotate(5deg);
+}
+
+/* ============================================
+   3. LOADING ANIMATIONS
+   ============================================ */
+
+/* Shimmer loading effect */
+.shimmer {
+    background: linear-gradient(
+        90deg,
+        rgba(11, 23, 57, 0.4) 25%,
+        rgba(203, 60, 255, 0.1) 50%,
+        rgba(11, 23, 57, 0.4) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+/* Skeleton loading */
+.skeleton {
+    background: rgba(174, 185, 225, 0.1);
+    border-radius: var(--radius-md);
+    animation: skeleton 1.5s ease-in-out infinite;
+}
+
+/* Dot pulse loader */
+.dot-loader {
+    display: flex;
+    gap: 8px;
+}
+
+.dot-loader span {
+    width: 8px;
+    height: 8px;
+    background: var(--pink-400);
+    border-radius: 50%;
+    animation: dot-pulse 1.4s ease-in-out infinite both;
+}
+
+.dot-loader span:nth-child(1) { animation-delay: -0.32s; }
+.dot-loader span:nth-child(2) { animation-delay: -0.16s; }
+.dot-loader span:nth-child(3) { animation-delay: 0s; }
+
+@keyframes dot-pulse {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+    40% { transform: scale(1); opacity: 1; }
+}
+
+/* Spinner variants */
+.spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid rgba(203, 60, 255, 0.2);
+    border-top-color: var(--pink-400);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.spinner-sm {
+    width: 16px;
+    height: 16px;
+    border-width: 1.5px;
+}
+
+.spinner-lg {
+    width: 32px;
+    height: 32px;
+    border-width: 3px;
+}
+
+/* ============================================
+   4. BUTTON ANIMATIONS
+   ============================================ */
+
+/* Button ripple effect */
+.btn-ripple {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-ripple::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.6s var(--ease-out), height 0.6s var(--ease-out);
+}
+
+.btn-ripple:active::before {
+    width: 300px;
+    height: 300px;
+}
+
+/* Button shine effect */
+.btn-shine {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-shine::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+    );
+    transition: left 0.5s var(--ease-out);
+}
+
+.btn-shine:hover::after {
+    left: 100%;
+}
+
+/* ============================================
+   5. CARD ANIMATIONS
+   ============================================ */
+
+/* Card lift effect */
+.card-lift {
+    transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
+}
+
+.card-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-glow-pink-md);
+}
+
+/* Card glow border */
+.card-glow {
+    position: relative;
+    transition: transform 0.3s var(--ease-out);
+}
+
+.card-glow::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    background: var(--gradient-primary);
+    border-radius: calc(var(--radius-md) + 1px);
+    opacity: 0;
+    z-index: -1;
+    transition: opacity 0.3s var(--ease-out);
+}
+
+.card-glow:hover::before {
+    opacity: 1;
+}
+
+.card-glow:hover {
+    transform: translateY(-2px);
+}
+
+/* ============================================
+   6. NOTIFICATION ANIMATIONS
+   ============================================ */
+
+/* Toast slide in */
+.toast-enter {
+    animation: toastSlideIn 0.4s var(--ease-spring) forwards;
+}
+
+.toast-exit {
+    animation: toastSlideOut 0.3s var(--ease-in) forwards;
+}
+
+@keyframes toastSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+@keyframes toastSlideOut {
+    from {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(100%) scale(0.9);
+    }
+}
+
+/* Success checkmark animation */
+.checkmark {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--green-400);
+    position: relative;
+    animation: checkmark-scale 0.4s var(--ease-spring);
+}
+
+.checkmark::after {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 4px;
+    width: 6px;
+    height: 12px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    animation: checkmark-draw 0.3s ease 0.2s both;
+}
+
+@keyframes checkmark-scale {
+    0% { transform: scale(0); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+@keyframes checkmark-draw {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+/* ============================================
+   7. PROGRESS ANIMATIONS
+   ============================================ */
+
+/* Progress bar with glow */
+.progress-glow {
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-glow::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 30px;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(203, 60, 255, 0.5),
+        transparent
+    );
+    animation: progress-shimmer 1.5s infinite;
+}
+
+@keyframes progress-shimmer {
+    0% { transform: translateX(-30px); }
+    100% { transform: translateX(100px); }
+}
+
+/* Circular progress */
+.circular-progress {
+    transform: rotate(-90deg);
+}
+
+.circular-progress circle {
+    fill: none;
+    stroke-width: 4;
+}
+
+.circular-progress .track {
+    stroke: rgba(174, 185, 225, 0.1);
+}
+
+.circular-progress .progress {
+    stroke: url(#gradient);
+    stroke-linecap: round;
+    stroke-dasharray: 251.2;
+    stroke-dashoffset: 251.2;
+    transition: stroke-dashoffset 0.5s var(--ease-out);
+}
+
+/* ============================================
+   8. SCROLL ANIMATIONS
+   ============================================ */
+
+/* Reveal on scroll */
+.reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out);
+}
+
+.reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Fade in left on scroll */
+.reveal-left {
+    opacity: 0;
+    transform: translateX(-50px);
+    transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out);
+}
+
+.reveal-left.visible {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Fade in right on scroll */
+.reveal-right {
+    opacity: 0;
+    transform: translateX(50px);
+    transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out);
+}
+
+.reveal-right.visible {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Scale reveal */
+.reveal-scale {
+    opacity: 0;
+    transform: scale(0.8);
+    transition: opacity 0.5s var(--ease-out), transform 0.5s var(--ease-spring);
+}
+
+.reveal-scale.visible {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* ============================================
+   9. SPECIAL EFFECTS
+   ============================================ */
+
+/* Neon text effect */
+.neon-text {
+    color: var(--pink-400);
+    text-shadow:
+        0 0 5px rgba(203, 60, 255, 0.5),
+        0 0 10px rgba(203, 60, 255, 0.3),
+        0 0 20px rgba(203, 60, 255, 0.2);
+    animation: neon-flicker 2s infinite alternate;
+}
+
+@keyframes neon-flicker {
+    0%, 100% {
+        text-shadow:
+            0 0 5px rgba(203, 60, 255, 0.5),
+            0 0 10px rgba(203, 60, 255, 0.3),
+            0 0 20px rgba(203, 60, 255, 0.2);
+    }
+    50% {
+        text-shadow:
+            0 0 10px rgba(203, 60, 255, 0.8),
+            0 0 20px rgba(203, 60, 255, 0.5),
+            0 0 30px rgba(203, 60, 255, 0.3);
+    }
+}
+
+/* Floating animation */
+.float {
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.float-delayed {
+    animation: float 3s ease-in-out 0.5s infinite;
+}
+
+/* Pulse ring effect */
+.pulse-ring {
+    position: relative;
+}
+
+.pulse-ring::before,
+.pulse-ring::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 2px solid var(--pink-400);
+    border-radius: 50%;
+    opacity: 0;
+}
+
+.pulse-ring::before {
+    animation: pulse-ring 1.5s ease-out infinite;
+}
+
+.pulse-ring::after {
+    animation: pulse-ring 1.5s ease-out 0.5s infinite;
+}
+
+/* Glitch effect */
+.glitch {
+    position: relative;
+}
+
+.glitch::before,
+.glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.8;
+}
+
+.glitch::before {
+    color: var(--cyan-400);
+    animation: glitch-1 0.3s infinite linear alternate-reverse;
+    clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+}
+
+.glitch::after {
+    color: var(--pink-400);
+    animation: glitch-2 0.3s infinite linear alternate-reverse;
+    clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+}
+
+@keyframes glitch-1 {
+    0% { transform: translate(0); }
+    20% { transform: translate(-2px, 2px); }
+    40% { transform: translate(-2px, -2px); }
+    60% { transform: translate(2px, 2px); }
+    80% { transform: translate(2px, -2px); }
+    100% { transform: translate(0); }
+}
+
+@keyframes glitch-2 {
+    0% { transform: translate(0); }
+    20% { transform: translate(2px, -2px); }
+    40% { transform: translate(2px, 2px); }
+    60% { transform: translate(-2px, -2px); }
+    80% { transform: translate(-2px, 2px); }
+    100% { transform: translate(0); }
+}
+
+/* Scanline effect */
+.scanlines {
+    position: relative;
+    overflow: hidden;
+}
+
+.scanlines::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.1) 2px,
+        rgba(0, 0, 0, 0.1) 4px
+    );
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* ============================================
+   10. PAGE TRANSITIONS
+   ============================================ */
+
+/* Page fade transition */
+.page-transition-enter {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.page-transition-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.3s var(--ease-out), transform 0.3s var(--ease-out);
+}
+
+.page-transition-exit {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.page-transition-exit-active {
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 0.2s var(--ease-in), transform 0.2s var(--ease-in);
+}
+
+/* ============================================
+   11. INTERACTIVE STATES
+   ============================================ */
+
+/* Focus visible with glow */
+.focus-glow:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(203, 60, 255, 0.3), 0 0 20px rgba(203, 60, 255, 0.2);
+}
+
+/* Active press effect */
+.press-effect:active {
+    transform: scale(0.97);
+    transition: transform 0.1s var(--ease-out);
+}
+
+/* Selection color */
+::selection {
+    background: rgba(203, 60, 255, 0.3);
+    color: var(--text-primary);
+}
+
+/* ============================================
+   12. PERFORMANCE OPTIMIZATIONS
+   ============================================ */
+
+/* GPU acceleration for animations */
+.gpu-accelerated {
+    transform: translateZ(0);
+    will-change: transform, opacity;
+}
+
+/* Reduce motion preference */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    .stagger-children > * {
+        animation: none;
+        opacity: 1;
+    }
+}

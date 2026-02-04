@@ -12,6 +12,8 @@ import time
 import uuid
 import shutil
 import string
+import gzip
+import random
 from io import BytesIO
 from PIL import Image
 import pandas as pd
@@ -382,6 +384,77 @@ def fm_mkdir():
 def converter_page():
     return render_template('converter.html')
 
+@app.route('/api/file_info', methods=['POST'])
+def get_file_info():
+    """Get file information for local disk selection"""
+    try:
+        data = request.json
+        file_path = data.get('path')
+        
+        if not file_path or not os.path.exists(file_path):
+            return jsonify({"error": "File not found"}), 404
+        
+        if not os.path.isfile(file_path):
+            return jsonify({"error": "Path is not a file"}), 400
+        
+        # Get basic file stats
+        stat = os.stat(file_path)
+        file_size = stat.st_size
+        file_name = os.path.basename(file_path)
+        
+        # Get extension
+        _, ext = os.path.splitext(file_name)
+        extension = ext.lstrip('.').lower() if ext else ''
+        
+        # Estimate rows for certain file types
+        estimated_rows = None
+        try:
+            if extension == 'parquet':
+                # Read parquet metadata without loading full data
+                import pyarrow.parquet as pq
+                parquet_file = pq.ParquetFile(file_path)
+                estimated_rows = parquet_file.metadata.num_rows
+            elif extension in ['csv']:
+                # Rough estimate for CSV
+                with open(file_path, 'rb') as f:
+                    # Read first 1MB to estimate
+                    sample = f.read(1024 * 1024)
+                    avg_line_length = len(sample) / sample.count(b'\n') if sample.count(b'\n') > 0 else 100
+                    estimated_rows = int(file_size / avg_line_length)
+            elif extension in ['jsonl']:
+                # Count lines (limit to first 10000 for speed)
+                with open(file_path, 'rb') as f:
+                    estimated_rows = sum(1 for _ in f)
+            elif extension in ['json']:
+                # Try to count array items
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read(1024 * 1024)  # Read first 1MB
+                    estimated_rows = content.count('{')  # Rough estimate
+        except Exception:
+            pass
+        
+        return jsonify({
+            "name": file_name,
+            "path": file_path,
+            "size": file_size,
+            "extension": extension,
+            "estimated_rows": _formatNumber(estimated_rows) if estimated_rows else '-',
+            "modified_time": stat.st_mtime
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+def _formatNumber(num):
+    """Format number to human readable"""
+    if num is None:
+        return '-'
+    if num >= 1000000:
+        return f"{num/1000000:.1f}M"
+    if num >= 1000:
+        return f"{num/1000:.1f}K"
+    return str(num)
+
 @app.route('/api/convert', methods=['POST'])
 def convert_api():
     try:
@@ -478,6 +551,39 @@ def convert_api():
                 output_io.write(content_text.encode('utf-8'))
                 filename = "doc.md"
             else: return jsonify({"error": "Unsupported doc conversion"}), 400
+
+        elif category == 'parquet':
+            ext = input_filename.split('.')[-1].lower() if '.' in input_filename else ''
+            if ext != 'parquet':
+                return jsonify({"error": "Invalid file format. Expected .parquet file"}), 400
+            
+            try:
+                # Read parquet file using pandas
+                df = pd.read_parquet(BytesIO(content_bytes))
+                
+                if target_format == 'jsonl':
+                    # Convert DataFrame to JSON Lines format
+                    jsonl_lines = []
+                    for _, row in df.iterrows():
+                        # Convert row to dict and handle non-serializable types
+                        row_dict = row.to_dict()
+                        # Convert numpy types to python native types
+                        for key, value in row_dict.items():
+                            if hasattr(value, 'item'):  # numpy scalar
+                                row_dict[key] = value.item()
+                            elif isinstance(value, (pd.Timestamp, pd.NaT)):
+                                row_dict[key] = str(value) if pd.notna(value) else None
+                            elif pd.isna(value):
+                                row_dict[key] = None
+                        jsonl_lines.append(json.dumps(row_dict, ensure_ascii=False))
+                    
+                    output_io.write('\n'.join(jsonl_lines).encode('utf-8'))
+                    mimetype = "application/jsonlines"
+                    filename = "data.jsonl"
+                else:
+                    return jsonify({"error": "Unsupported parquet conversion format"}), 400
+            except Exception as e:
+                return jsonify({"error": f"Parquet processing failed: {str(e)}"}), 500
 
         output_io.seek(0)
         return send_file(output_io, mimetype=mimetype, as_attachment=True, download_name=filename)
@@ -630,6 +736,14 @@ def vram_calc():
 def rag_page():
     return render_template('rag.html')
 
+@app.route('/compute/vram')
+def compute_vram_page():
+    return render_template('compute.html')
+
+@app.route('/data_preparation')
+def data_preparation_page():
+    return render_template('data_preparation.html')
+
 @app.route('/api/intel/rag_chunk', methods=['POST'])
 def rag_chunk_logic():
     try:
@@ -719,6 +833,423 @@ def preview_jsonl():
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# Data Preparation API Endpoints
+
+@app.route('/api/prep/clean', methods=['POST'])
+def prep_clean():
+    """Data Cleaning: membersihkan data dari noise dan inkonsistensi"""
+    try:
+        data = request.json
+        input_path = data.get('input_path')
+        output_path = data.get('output_path')
+        options = data.get('options', {})
+        
+        if not input_path or not os.path.exists(input_path):
+            return jsonify({"error": "Input file not found"}), 404
+        
+        is_gz = input_path.lower().endswith('.gz')
+        open_func = gzip.open if is_gz else open
+        mode = 'rt' if is_gz else 'r'
+        
+        records = []
+        errors = []
+        
+        # Read all records
+        with open_func(input_path, mode, encoding='utf-8', errors='replace') as f:
+            for i, line in enumerate(f):
+                try:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    record = json.loads(line)
+                    records.append(record)
+                except json.JSONDecodeError as e:
+                    errors.append({"line": i + 1, "error": str(e)})
+        
+        initial_count = len(records)
+        
+        # Apply cleaning operations
+        cleaned_records = records.copy()
+        
+        # 1. Remove duplicates (convert to string for comparison)
+        if options.get('remove_duplicates', True):
+            seen = set()
+            unique_records = []
+            for record in cleaned_records:
+                record_str = json.dumps(record, sort_keys=True)
+                if record_str not in seen:
+                    seen.add(record_str)
+                    unique_records.append(record)
+            cleaned_records = unique_records
+        
+        # 2. Handle nulls - filter out records with all null values
+        if options.get('handle_nulls', True):
+            def has_valid_data(record):
+                if not record:
+                    return False
+                for v in record.values():
+                    if v is not None and v != '' and v != [] and v != {}:
+                        return True
+                return False
+            cleaned_records = [r for r in cleaned_records if has_valid_data(r)]
+        
+        # 3. Normalize text fields
+        if options.get('normalize_text', True):
+            for record in cleaned_records:
+                for key, value in record.items():
+                    if isinstance(value, str):
+                        record[key] = value.strip()
+        
+        # 4. Remove special characters
+        if options.get('remove_special_chars', False):
+            import re
+            for record in cleaned_records:
+                for key, value in record.items():
+                    if isinstance(value, str):
+                        record[key] = re.sub(r'[^\w\s-]', '', value)
+        
+        # 5. Filter by minimum length
+        if options.get('filter_min_length', False):
+            min_length = options.get('min_length', 10)
+            cleaned_records = [
+                r for r in cleaned_records 
+                if any(len(str(v)) >= min_length for v in r.values() if isinstance(v, str))
+            ]
+        
+        final_count = len(cleaned_records)
+        removed_count = initial_count - final_count
+        reduction_percent = round((removed_count / initial_count * 100), 2) if initial_count > 0 else 0
+        
+        # Determine output path
+        if not output_path:
+            base, ext = os.path.splitext(input_path)
+            if is_gz:
+                base = base.replace('.jsonl', '')
+                output_path = f"{base}_cleaned.jsonl.gz"
+            else:
+                output_path = f"{base}_cleaned.jsonl"
+        
+        # Write cleaned data
+        os.makedirs(os.path.dirname(os.path.abspath(output_path)) or '.', exist_ok=True)
+        
+        if output_path.lower().endswith('.gz'):
+            with gzip.open(output_path, 'wt', encoding='utf-8') as f:
+                for record in cleaned_records:
+                    f.write(json.dumps(record, ensure_ascii=False) + '\n')
+        else:
+            with open(output_path, 'w', encoding='utf-8') as f:
+                for record in cleaned_records:
+                    f.write(json.dumps(record, ensure_ascii=False) + '\n')
+        
+        return jsonify({
+            "success": True,
+            "initial_count": initial_count,
+            "final_count": final_count,
+            "removed_count": removed_count,
+            "reduction_percent": reduction_percent,
+            "output_path": output_path,
+            "parse_errors": len(errors)
+        })
+        
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/prep/split', methods=['POST'])
+def prep_split():
+    """Data Splitting: membagi data menjadi training dan validation set"""
+    try:
+        data = request.json
+        input_path = data.get('input_path')
+        output_dir = data.get('output_dir')
+        train_ratio = data.get('train_ratio', 0.8)
+        random_seed = data.get('random_seed', 42)
+        shuffle = data.get('shuffle', True)
+        
+        if not input_path or not os.path.exists(input_path):
+            return jsonify({"error": "Input file not found"}), 404
+        
+        is_gz = input_path.lower().endswith('.gz')
+        open_func = gzip.open if is_gz else open
+        mode = 'rt' if is_gz else 'r'
+        
+        # Read all records
+        records = []
+        with open_func(input_path, mode, encoding='utf-8', errors='replace') as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    records.append(json.loads(line))
+                except:
+                    pass
+        
+        total_count = len(records)
+        if total_count == 0:
+            return jsonify({"error": "No valid records found in file"}), 400
+        
+        # Shuffle if requested
+        if shuffle:
+            import random
+            random.seed(random_seed)
+            random.shuffle(records)
+        
+        # Calculate split
+        train_count = int(total_count * train_ratio)
+        val_count = total_count - train_count
+        
+        train_records = records[:train_count]
+        val_records = records[train_count:]
+        
+        # Determine output directory and filenames
+        if not output_dir:
+            output_dir = os.path.dirname(os.path.abspath(input_path)) or '.'
+        
+        os.makedirs(output_dir, exist_ok=True)
+        
+        base_name = os.path.splitext(os.path.basename(input_path))[0]
+        if is_gz:
+            base_name = base_name.replace('.jsonl', '')
+        
+        train_file = os.path.join(output_dir, f"{base_name}_train.jsonl")
+        val_file = os.path.join(output_dir, f"{base_name}_validation.jsonl")
+        
+        # Write train file
+        with open(train_file, 'w', encoding='utf-8') as f:
+            for record in train_records:
+                f.write(json.dumps(record, ensure_ascii=False) + '\n')
+        
+        # Write validation file
+        with open(val_file, 'w', encoding='utf-8') as f:
+            for record in val_records:
+                f.write(json.dumps(record, ensure_ascii=False) + '\n')
+        
+        return jsonify({
+            "success": True,
+            "total_count": total_count,
+            "train_count": train_count,
+            "val_count": val_count,
+            "train_percent": round(train_count / total_count * 100, 1),
+            "val_percent": round(val_count / total_count * 100, 1),
+            "train_file": train_file,
+            "val_file": val_file
+        })
+        
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/prep/tokenize', methods=['POST'])
+def prep_tokenize():
+    """Tokenization: mengkonversikan teks ke token menggunakan tokenizer dari model base"""
+    try:
+        data = request.json
+        input_path = data.get('input_path')
+        model_base = data.get('model_base', 'Qwen/Qwen2-7B-Instruct')
+        text_field = data.get('text_field', 'text')
+        calc_max_length = data.get('calc_max_length', True)
+        calc_avg_length = data.get('calc_avg_length', True)
+        preview_tokens = data.get('preview_tokens', False)
+        max_records = data.get('max_records', 1000)
+        
+        if not input_path or not os.path.exists(input_path):
+            return jsonify({"error": "Input file not found"}), 404
+        
+        # Try to import transformers
+        try:
+            from transformers import AutoTokenizer
+        except ImportError:
+            return jsonify({"error": "transformers library not installed. Run: pip install transformers"}), 500
+        
+        # Load tokenizer
+        try:
+            tokenizer = AutoTokenizer.from_pretrained(model_base, trust_remote_code=True)
+        except Exception as e:
+            return jsonify({"error": f"Failed to load tokenizer: {str(e)}"}), 500
+        
+        is_gz = input_path.lower().endswith('.gz')
+        open_func = gzip.open if is_gz else open
+        mode = 'rt' if is_gz else 'r'
+        
+        # Read and tokenize records
+        records = []
+        with open_func(input_path, mode, encoding='utf-8', errors='replace') as f:
+            for i, line in enumerate(f):
+                if max_records > 0 and i >= max_records:
+                    break
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    record = json.loads(line)
+                    records.append(record)
+                except:
+                    pass
+        
+        token_counts = []
+        preview_data = []
+        
+        for record in records:
+            text = ''
+            if isinstance(text_field, str) and text_field in record:
+                text = str(record[text_field])
+            else:
+                # If text_field not found, try common fields
+                for field in ['text', 'content', 'instruction', 'input', 'output']:
+                    if field in record:
+                        text = str(record[field])
+                        break
+            
+            if text:
+                tokens = tokenizer.encode(text, add_special_tokens=False)
+                token_counts.append(len(tokens))
+                
+                if preview_tokens and len(preview_data) < 5:
+                    # Decode tokens back to strings for preview
+                    decoded = tokenizer.convert_ids_to_tokens(tokens[:20])  # First 20 tokens
+                    preview_data.append(decoded)
+        
+        result = {
+            "success": True,
+            "tokenizer": model_base,
+            "record_count": len(records),
+            "text_field": text_field
+        }
+        
+        if token_counts:
+            if calc_max_length:
+                result["max_tokens"] = max(token_counts)
+            if calc_avg_length:
+                result["avg_tokens"] = round(sum(token_counts) / len(token_counts), 2)
+            result["total_tokens"] = sum(token_counts)
+        else:
+            result["max_tokens"] = 0
+            result["avg_tokens"] = 0
+            result["total_tokens"] = 0
+        
+        if preview_tokens and preview_data:
+            result["preview"] = preview_data
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/prep/validate', methods=['POST'])
+def prep_validate():
+    """Data Validation: memastikan format JSONL valid dan konsisten"""
+    try:
+        data = request.json
+        input_path = data.get('input_path')
+        validate_json = data.get('validate_json', True)
+        validate_fields = data.get('validate_fields', True)
+        validate_types = data.get('validate_types', False)
+        validate_encoding = data.get('validate_encoding', True)
+        required_fields = data.get('required_fields', [])
+        max_records = data.get('max_records', 0)
+        
+        if not input_path or not os.path.exists(input_path):
+            return jsonify({"error": "Input file not found"}), 404
+        
+        is_gz = input_path.lower().endswith('.gz')
+        open_func = gzip.open if is_gz else open
+        mode = 'rt' if is_gz else 'r'
+        
+        total_count = 0
+        valid_count = 0
+        invalid_count = 0
+        errors = []
+        
+        # Detect encoding if needed
+        if validate_encoding and not is_gz:
+            try:
+                with open(input_path, 'rb') as f:
+                    raw_data = f.read()
+                    try:
+                        raw_data.decode('utf-8')
+                    except UnicodeDecodeError:
+                        return jsonify({"error": "File is not valid UTF-8 encoded"}), 400
+            except Exception as e:
+                return jsonify({"error": f"Encoding validation failed: {str(e)}"}), 500
+        
+        with open_func(input_path, mode, encoding='utf-8', errors='replace') as f:
+            for i, line in enumerate(f):
+                if max_records > 0 and i >= max_records:
+                    break
+                
+                total_count += 1
+                line_num = i + 1
+                line_errors = []
+                
+                # Check if line is empty
+                if not line.strip():
+                    invalid_count += 1
+                    errors.append({"line": line_num, "message": "Empty line"})
+                    continue
+                
+                # Validate JSON syntax
+                if validate_json:
+                    try:
+                        record = json.loads(line)
+                    except json.JSONDecodeError as e:
+                        invalid_count += 1
+                        errors.append({"line": line_num, "message": f"Invalid JSON: {str(e)}"})
+                        continue
+                else:
+                    try:
+                        record = json.loads(line)
+                    except:
+                        invalid_count += 1
+                        continue
+                
+                # Validate required fields
+                if validate_fields and required_fields:
+                    missing_fields = [f for f in required_fields if f not in record]
+                    if missing_fields:
+                        line_errors.append(f"Missing fields: {', '.join(missing_fields)}")
+                
+                # Validate data types (basic check)
+                if validate_types and record:
+                    for key, value in record.items():
+                        if value is not None and not isinstance(value, (str, int, float, bool, list, dict)):
+                            line_errors.append(f"Field '{key}' has unsupported type: {type(value).__name__}")
+                
+                if line_errors:
+                    invalid_count += 1
+                    for err in line_errors[:3]:  # Limit errors per line
+                        errors.append({"line": line_num, "message": err})
+                else:
+                    valid_count += 1
+        
+        success_rate = round(valid_count / total_count * 100, 2) if total_count > 0 else 0
+        
+        # Limit error display
+        display_errors = errors[:50]  # Show max 50 errors
+        
+        return jsonify({
+            "success": True,
+            "total_count": total_count,
+            "valid_count": valid_count,
+            "invalid_count": invalid_count,
+            "success_rate": success_rate,
+            "errors": display_errors,
+            "total_errors": len(errors)
+        })
+        
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
+
 
 # Cache management endpoints
 @app.route('/api/cache/clear', methods=['POST'])

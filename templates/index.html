@@ -3,36 +3,216 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xtools - Operations Center</title>
-    <!-- Bootstrap 5 & FontAwesome -->
+    <title>Operations - Xtools</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Custom Style -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     
     <style>
-        /* Small page-specific adjustments if any */
-        .input-group-custom {
-            display: flex;
-            align-items: center;
-            width: 100%;
+        .page-header {
+            margin-bottom: var(--space-xl);
         }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--color-text-main);
+            margin-bottom: var(--space-xs);
+        }
+
+        .page-subtitle {
+            color: var(--color-text-muted);
+            font-size: 1rem;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1rem;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--color-success);
+            border-radius: var(--radius-full);
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .status-badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--color-success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
         .action-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 1.5rem;
-            margin-top: 1.5rem;
+            gap: var(--space-md);
         }
-        .action-btn {
-            padding: 2rem 1.5rem;
+
+        @media (max-width: 768px) {
+            .action-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .action-card {
+            background: var(--color-bg-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-xl);
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.2s ease;
         }
-        .action-btn i {
-            font-size: 2rem;
-            margin-bottom: 15px;
-            display: block;
+
+        .action-card:hover {
+            border-color: var(--color-primary);
+            box-shadow: var(--shadow-md);
+        }
+
+        .action-card.selected {
+            background: var(--color-primary-soft);
+            border-color: var(--color-primary);
+        }
+
+        .action-card.selected .action-icon {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .action-icon {
+            width: 64px;
+            height: 64px;
+            background: var(--color-bg-main);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto var(--space-md);
+            font-size: 1.75rem;
+            color: var(--color-text-muted);
+            transition: all 0.2s ease;
+        }
+
+        .action-card:hover .action-icon {
+            background: var(--color-primary-soft);
+            color: var(--color-primary);
+        }
+
+        .action-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--color-text-main);
+            margin-bottom: var(--space-sm);
+        }
+
+        .action-desc {
+            font-size: 0.875rem;
+            color: var(--color-text-muted);
+            line-height: 1.5;
+        }
+
+        .config-panel {
+            background: var(--color-bg-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            height: 100%;
+        }
+
+        .config-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: var(--space-md);
+        }
+
+        .terminal-card {
+            background: #1e293b;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            margin-top: var(--space-xl);
+        }
+
+        .terminal-header {
+            background: rgba(255, 255, 255, 0.05);
+            padding: var(--space-md) var(--space-lg);
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .terminal-dot.red { background: #ef4444; }
+        .terminal-dot.yellow { background: #f59e0b; }
+        .terminal-dot.green { background: #10b981; }
+
+        .terminal-title {
+            color: var(--color-text-light);
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .terminal-body {
+            padding: var(--space-lg);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            color: #e2e8f0;
+            height: 280px;
+            overflow-y: auto;
+        }
+
+        .log-line {
+            margin-bottom: 0.5rem;
+        }
+
+        .log-time {
+            color: var(--color-text-light);
+        }
+
+        .log-success { color: var(--color-success); }
+        .log-error { color: #ef4444; }
+        .log-info { color: var(--color-primary-light); }
+
+        .progress-wrapper {
+            margin-bottom: var(--space-xl);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-sm);
+        }
+
+        .progress-title {
+            font-weight: 600;
+            color: var(--color-text-main);
+        }
+
+        .progress-value {
+            font-weight: 700;
+            color: var(--color-primary);
         }
     </style>
 </head>
@@ -45,126 +225,138 @@
     <!-- Main Content -->
     <div class="main-content">
         
-        <div class="d-flex justify-content-between align-items-end mb-5">
+        <!-- Page Header -->
+        <div class="page-header d-flex justify-content-between align-items-start">
             <div>
-                <h1 class="text-uppercase m-0" style="font-size: 3rem;">Operations</h1>
-                <p class="subtitle">SYSTEM_ROOT // LARGE_FILE_PROCESSOR</p>
+                <h1 class="page-title">Operations</h1>
+                <p class="page-subtitle">System root // Large file processor</p>
             </div>
-            <div class="badge bg-black border border-success text-success px-4 py-3 fw-800" style="box-shadow: 4px 4px 0px 0px #00ff00;">
-                <i class="fa-solid fa-bolt me-2"></i> KERNEL_ACTIVE
+            <div class="status-badge">
+                Kernel Active
             </div>
         </div>
 
-        <!-- Main Processing Card -->
-        <div class="app-card p-5">
+        <!-- Main Card -->
+        <div class="app-card">
             
-            <!-- Path Input -->
-            <label class="form-label fw-800 text-primary small text-uppercase mb-3">01 // TARGET_SOURCE</label>
-            <div class="d-flex gap-3 mb-4">
-                <input type="text" id="filePath" class="form-control form-control-lg" placeholder="ENTER_SOURCE_FILE_PATH">
-                <button class="btn btn-primary px-4" type="button" onclick="openBrowser('filePath')">
-                    <i class="fa-solid fa-folder-open"></i> BROWSE
-                </button>
+            <!-- Source Input -->
+            <div class="mb-4">
+                <label class="form-label">Source File</label>
+                <div class="d-flex gap-3">
+                    <input type="text" id="filePath" class="form-control form-control-lg" placeholder="Enter source file path">
+                    <button class="btn btn-secondary" type="button" onclick="openBrowser('filePath')" style="white-space: nowrap;">
+                        <i class="fa-solid fa-folder-open me-2"></i> Browse
+                    </button>
+                </div>
+                <div class="d-flex justify-content-between mt-2" style="font-size: 0.875rem; color: var(--color-text-muted);">
+                    <span>Supported: .safetensors, .csv, .json, .bin</span>
+                    <span>Custom output path enabled</span>
+                </div>
             </div>
 
-            <label class="form-label fw-800 text-primary small text-uppercase mb-3">02 // OUTPUT_DESTINATION</label>
-            <div class="d-flex gap-3 mb-2">
-                <input type="text" id="destPath" class="form-control form-control-lg" placeholder="ENTER_OUTPUT_DIRECTORY (LEAVE_EMPTY_FOR_SAME_AS_SOURCE)">
-                <button class="btn btn-primary px-4" type="button" onclick="openBrowser('destPath')">
-                    <i class="fa-solid fa-folder-tree"></i> SELECT
-                </button>
-            </div>
-            <div class="d-flex justify-content-between small text-muted mb-5">
-                <span class="fw-bold">SUPPORTED: .safetensors, .csv, .json, .bin</span>
-                <span class="text-uppercase">Custom_Output_Path_Enabled</span>
+            <!-- Destination Input -->
+            <div class="mb-4">
+                <label class="form-label">Output Destination</label>
+                <div class="d-flex gap-3">
+                    <input type="text" id="destPath" class="form-control" placeholder="Enter output directory (leave empty for same as source)">
+                    <button class="btn btn-secondary" type="button" onclick="openBrowser('destPath')" style="white-space: nowrap;">
+                        <i class="fa-solid fa-folder-tree me-2"></i> Select
+                    </button>
+                </div>
             </div>
 
-            <hr class="border-secondary my-5 opacity-25">
+            <hr style="border-color: var(--color-border); margin: var(--space-xl) 0;">
 
-            <!-- Options Grid -->
+            <!-- Action Selection -->
             <div class="row">
                 <div class="col-md-8">
-                    <label class="form-label fw-800 text-primary small text-uppercase mb-3">03 // SELECT_METHOD</label>
+                    <label class="form-label">Select Method</label>
                     <div class="action-grid">
-                        <div class="action-btn selected" onclick="selectMode('split')">
-                            <i class="fa-solid fa-scissors"></i>
-                            <div class="fw-bold h5">SPLIT</div>
-                            <small class="text-muted" style="font-size: 0.65rem;">Partition large neural weights or datasets into manageable chunks for easy transfer or FAT32 compatibility.</small>
+                        <div class="action-card selected" onclick="selectMode('split')">
+                            <div class="action-icon">
+                                <i class="fa-solid fa-scissors"></i>
+                            </div>
+                            <div class="action-title">Split</div>
+                            <div class="action-desc">Partition large files into manageable chunks for easy transfer.</div>
                         </div>
-                        <div class="action-btn" onclick="selectMode('merge')">
-                            <i class="fa-solid fa-puzzle-piece"></i>
-                            <div class="fw-bold h5">MERGE</div>
-                            <small class="text-muted" style="font-size: 0.65rem;">Reconstruct segmented files back into their original binary manifest using auto-detection logic.</small>
+                        <div class="action-card" onclick="selectMode('merge')">
+                            <div class="action-icon">
+                                <i class="fa-solid fa-puzzle-piece"></i>
+                            </div>
+                            <div class="action-title">Merge</div>
+                            <div class="action-desc">Reconstruct segmented files back into their original form.</div>
                         </div>
-                        <div class="action-btn" onclick="selectMode('convert')">
-                            <i class="fa-solid fa-code"></i>
-                            <div class="fw-bold h5">JSON</div>
-                            <small class="text-muted" style="font-size: 0.65rem;">Extract header metadata from safetensors or convert tabular CSV data into structured JSON objects.</small>
+                        <div class="action-card" onclick="selectMode('convert')">
+                            <div class="action-icon">
+                                <i class="fa-solid fa-code"></i>
+                            </div>
+                            <div class="action-title">JSON</div>
+                            <div class="action-desc">Extract metadata or convert CSV data into structured JSON.</div>
                         </div>
                     </div>
                 </div>
                 
                 <div class="col-md-4">
-                    <label class="form-label fw-800 text-primary small text-uppercase mb-3">03 // PARAMS</label>
-                    <div class="p-4 bg-black border border-secondary h-100">
+                    <label class="form-label">Parameters</label>
+                    <div class="config-panel">
                         <div id="splitConfig">
-                            <label class="small fw-bold text-muted mb-2 text-uppercase">Block_Size</label>
-                            <select id="chunkSize" class="form-select mb-4">
-                                <option value="500MB">500 MB (LEGACY_SAFE)</option>
-                                <option value="1GB">1 GB (STANDARD)</option>
-                                <option value="2GB" selected>2 GB (OPTIMIZED)</option>
-                                <option value="4GB">4 GB (HIGH_SPEED)</option>
+                            <div class="config-title">Block Size</div>
+                            <select id="chunkSize" class="form-select mb-3">
+                                <option value="500MB">500 MB (Legacy Safe)</option>
+                                <option value="1GB">1 GB (Standard)</option>
+                                <option value="2GB" selected>2 GB (Optimized)</option>
+                                <option value="4GB">4 GB (High Speed)</option>
                             </select>
-                            <div class="alert bg-primary bg-opacity-10 border-primary text-primary small py-2 rounded-0">
-                                <i class="fa-solid fa-info-circle me-2"></i> Generating part001...N
+                            <div class="alert alert-info py-2">
+                                <i class="fa-solid fa-info-circle me-2"></i>
+                                <small>Generating part001...N</small>
                             </div>
                         </div>
                         <div id="mergeConfig" style="display:none;">
-                            <div class="alert bg-warning bg-opacity-10 border-warning text-warning small py-2 rounded-0">
-                                <i class="fa-solid fa-triangle-exclamation me-2"></i> AUTO_DETECT_SEGMENTS_IN_DIR
+                            <div class="alert alert-warning py-2">
+                                <i class="fa-solid fa-triangle-exclamation me-2"></i>
+                                <small>Auto-detect segments in directory</small>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Start Button -->
-            <button onclick="startProcess()" class="btn btn-primary w-100 mt-5 py-4 h4 mb-0">
-                <i class="fa-solid fa-play-circle me-2"></i> EXECUTE_SEQUENCE
+            <!-- Execute Button -->
+            <button onclick="startProcess()" class="btn btn-primary btn-lg w-100 mt-4">
+                <i class="fa-solid fa-play me-2"></i> Execute Sequence
             </button>
-
         </div>
 
-        <!-- Visualization / Terminal -->
-        <div id="statusSection" class="mt-5" style="display:none;">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="fw-800 text-uppercase m-0">LIVE_TELEMETRY</h5>
-                <div class="d-flex align-items-center gap-3">
-                    <div id="telemetryStatus" class="small fw-bold text-primary animate-pulse">
-                        <i class="fa-solid fa-circle-notch fa-spin me-1"></i> LINK_ACTIVE
-                    </div>
-                    <span id="percentageBadge" class="btn btn-sm btn-primary py-1 px-3 fw-800">0%</span>
-                </div>
-            </div>
+        <!-- Progress & Terminal -->
+        <div id="statusSection" style="display:none;">
             
-            <div class="progress mb-4" style="height: 12px;">
-                <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+            <!-- Progress -->
+            <div class="progress-wrapper">
+                <div class="progress-header">
+                    <span class="progress-title">Processing</span>
+                    <span class="progress-value" id="percentageBadge">0%</span>
+                </div>
+                <div class="progress">
+                    <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                </div>
             </div>
 
-            <!-- Advanced Terminal Window -->
-            <div class="app-card p-0 overflow-hidden border-primary" style="box-shadow: 10px 10px 0px 0px #000;">
-                <div class="bg-black p-2 px-3 border-bottom border-secondary d-flex justify-content-between align-items-center">
-                    <div class="d-flex gap-2">
-                        <div class="bg-danger rounded-circle" style="width: 8px; height: 8px;"></div>
-                        <div class="bg-warning rounded-circle" style="width: 8px; height: 8px;"></div>
-                        <div class="bg-success rounded-circle" style="width: 8px; height: 8px;"></div>
-                    </div>
-                    <small class="text-muted fw-800" style="font-size: 0.6rem; letter-spacing: 2px;">CORE_PROCESS_MONITOR</small>
-                    <div style="width: 30px;"></div>
+            <!-- Terminal -->
+            <div class="terminal-card">
+                <div class="terminal-header">
+                    <div class="terminal-dot red"></div>
+                    <div class="terminal-dot yellow"></div>
+                    <div class="terminal-dot green"></div>
+                    <span class="terminal-title">Core Process Monitor</span>
                 </div>
-                <div class="terminal-window p-4" id="terminalLog" style="height: 300px; font-size: 0.8rem; line-height: 1.6;">
-                    <div class="text-primary fw-bold">[${new Date().toLocaleTimeString()}] >> KERNEL_INTERFACE_V3_READY...</div>
-                    <div class="text-muted">[${new Date().toLocaleTimeString()}] >> AWAITING_SEQUENCE_START...</div>
+                <div class="terminal-body" id="terminalLog">
+                    <div class="log-line">
+                        <span class="log-time">[System]</span> Kernel interface ready...
+                    </div>
+                    <div class="log-line">
+                        <span class="log-time">[System]</span> Awaiting sequence start...
+                    </div>
                 </div>
             </div>
         </div>
@@ -172,28 +364,30 @@
     </div>
 
     <!-- File Browser Modal -->
-    <div class="modal fade" id="fileBrowserModal" tabindex="-1" aria-labelledby="fileBrowserModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal fade" id="fileBrowserModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="fileBrowserModalLabel">Select a File</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title">Select File</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="input-group input-group-sm mb-3">
-                        <button class="btn btn-outline-secondary" type="button" onclick="browseTo('::DRIVES::')" title="My PC"><i class="fa-solid fa-computer"></i></button>
-                        <span class="input-group-text bg-white"><i class="fa-solid fa-folder-tree"></i></span>
+                    <div class="input-group mb-3">
+                        <button class="btn btn-secondary" onclick="browseTo('::DRIVES::')">
+                            <i class="fa-solid fa-computer"></i>
+                        </button>
                         <input type="text" id="currentPathInput" class="form-control" placeholder="Path (e.g., C:\)">
-                        <button class="btn btn-primary" type="button" onclick="jumpToPath()">GO</button>
-                        <button class="btn btn-accent" type="button" onclick="confirmDirSelection()" id="selectDirBtn">SELECT_CURRENT_DIR</button>
+                        <button class="btn btn-primary" onclick="jumpToPath()">Go</button>
+                        <button class="btn btn-primary" onclick="confirmDirSelection()" id="selectDirBtn">Select Dir</button>
                     </div>
-                    <div id="fileList" class="list-group">
+                    <div id="fileList" class="list-group list-group-flush">
                         <!-- Content will be injected by JS -->
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let currentMode = 'split';
@@ -206,28 +400,27 @@
 
         function selectMode(mode) {
             currentMode = mode;
-            document.querySelectorAll('.action-btn').forEach(btn => btn.classList.remove('selected'));
-            document.querySelector(`.action-btn[onclick="selectMode('${mode}')"]`).classList.add('selected');
+            document.querySelectorAll('.action-card').forEach(card => card.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
             
             document.getElementById('splitConfig').style.display = mode === 'split' ? 'block' : 'none';
-            document.getElementById('mergeConfig').style.display = mode !== 'split' ? 'block' : 'none';
+            document.getElementById('mergeConfig').style.display = mode === 'merge' ? 'block' : 'none';
         }
 
         function logToTerminal(message) {
             const terminal = document.getElementById('terminalLog');
             const newLine = document.createElement('div');
+            newLine.className = 'log-line';
+            
             const time = new Date().toLocaleTimeString();
+            let logClass = '';
             
-            let colorClass = 'text-main';
-            let prefix = '>> ';
+            const msg = message.toLowerCase();
+            if(msg.includes('success')) logClass = 'log-success';
+            else if(msg.includes('error')) logClass = 'log-error';
+            else if(msg.includes('starting') || msg.includes('processing')) logClass = 'log-info';
             
-            const msg = message.toUpperCase();
-            if(msg.includes('SUCCESS')) { colorClass = 'text-success fw-bold'; prefix = 'OK '; }
-            else if(msg.includes('ERROR')) { colorClass = 'text-danger fw-bold'; prefix = '!! '; }
-            else if(msg.includes('STARTING') || msg.includes('SPLITTING') || msg.includes('MERGING')) { colorClass = 'text-primary'; prefix = '.. '; }
-            
-            newLine.className = colorClass;
-            newLine.innerHTML = `<span class="text-muted">[${time}]</span> ${prefix}${message}`;
+            newLine.innerHTML = `<span class="log-time">[${time}]</span> <span class="${logClass}">${message}</span>`;
             terminal.appendChild(newLine);
             terminal.scrollTop = terminal.scrollHeight;
         }
@@ -236,13 +429,8 @@
             currentTargetInput = targetId || 'filePath';
             fileBrowser.show();
             
-            // Show/Hide directory selection button based on target
             const dirBtn = document.getElementById('selectDirBtn');
-            if (currentTargetInput === 'destPath') {
-                dirBtn.style.display = 'block';
-            } else {
-                dirBtn.style.display = 'none';
-            }
+            dirBtn.style.display = currentTargetInput === 'destPath' ? 'inline-block' : 'none';
 
             const currentPath = document.getElementById(currentTargetInput).value;
             await browseTo(currentPath || ''); 
@@ -258,7 +446,6 @@
             fileBrowser.hide();
         }
 
-        // Handle Enter key on path input
         document.addEventListener('keydown', (e) => {
             if (e.target.id === 'currentPathInput' && e.key === 'Enter') {
                 jumpToPath();
@@ -291,12 +478,10 @@
                 document.getElementById('currentPathInput').value = data.current_path;
                 fileList.innerHTML = '';
 
-                // Add "Up" directory item if not at root
                 if (data.current_path !== data.parent_path) {
                     const parentItem = document.createElement('a');
-                    parentItem.href = "#";
-                    parentItem.className = 'list-group-item list-group-item-action file-item';
-                    parentItem.innerHTML = '<i class="fa-solid fa-arrow-turn-up text-primary"></i> .. (Parent Directory)';
+                    parentItem.className = 'list-group-item list-group-item-action';
+                    parentItem.innerHTML = '<i class="fa-solid fa-arrow-turn-up text-primary me-2"></i>.. (Parent Directory)';
                     parentItem.onclick = (e) => {
                         e.preventDefault();
                         browseTo(data.parent_path);
@@ -304,12 +489,10 @@
                     fileList.appendChild(parentItem);
                 }
 
-                // Add directories
                 data.dirs.forEach(dir => {
                     const item = document.createElement('a');
-                    item.href = "#";
-                    item.className = 'list-group-item list-group-item-action file-item';
-                    item.innerHTML = `<i class="fa-solid fa-folder text-warning"></i> ${dir}`;
+                    item.className = 'list-group-item list-group-item-action';
+                    item.innerHTML = `<i class="fa-solid fa-folder text-warning me-2"></i>${dir}`;
                     item.onclick = (e) => {
                         e.preventDefault();
                         const separator = data.current_path.endsWith('\\') ? '' : '\\';
@@ -318,12 +501,10 @@
                     fileList.appendChild(item);
                 });
 
-                // Add files
                 data.files.forEach(file => {
                     const item = document.createElement('a');
-                    item.href = "#";
-                    item.className = 'list-group-item list-group-item-action file-item';
-                    item.innerHTML = `<i class="fa-regular fa-file-lines text-muted"></i> ${file}`;
+                    item.className = 'list-group-item list-group-item-action';
+                    item.innerHTML = `<i class="fa-regular fa-file-lines text-muted me-2"></i>${file}`;
                     item.onclick = (e) => {
                         e.preventDefault();
                         const separator = data.current_path.endsWith('\\') ? '' : '\\';
@@ -353,8 +534,8 @@
             }
 
             document.getElementById('statusSection').style.display = 'block';
-            logToTerminal(`Initializing ${currentMode.toUpperCase()} sequence on: ${path}`);
-            if(dest) logToTerminal(`Output target redirected to: ${dest}`);
+            logToTerminal(`Initializing ${currentMode} sequence on: ${path}`);
+            if(dest) logToTerminal(`Output target: ${dest}`);
 
             fetch('/action', {
                 method: 'POST',
@@ -379,7 +560,7 @@
                         clearInterval(interval);
                     }
                 } catch (e) {
-                    logToTerminal(`Error polling status: ${e.message}`);
+                    logToTerminal(`Error: ${e.message}`);
                     clearInterval(interval);
                 }
             }, 800);
